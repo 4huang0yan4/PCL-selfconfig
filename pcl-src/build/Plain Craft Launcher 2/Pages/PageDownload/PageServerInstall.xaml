@@ -1,0 +1,66 @@
+<local:MyPageRight
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PCL" x:Class="PageServerInstall"
+    d:DesignWidth="800" d:DesignHeight="600" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+    <local:MyScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid>
+            <StackPanel x:Name="PanList" Margin="25,10">
+                <local:MyCard Margin="0,15" Title="下载服务端">
+                    <StackPanel Margin="25,37,25,15">
+                        <TextBlock TextWrapping="Wrap" Opacity="0.75" FontSize="13"
+                                   Text="点任意版本进入安装页（不选加载器就是原版），选好后点「开始下载」时会弹窗让你选保存目录。下载后自动写 eula.txt。" />
+                    </StackPanel>
+                </local:MyCard>
+                <local:MyCard Margin="0,0,0,15" Title="最新版本" CanSwap="True" IsSwapped="False">
+                    <StackPanel x:Name="PanLatest" Margin="25,37,25,10" />
+                </local:MyCard>
+                <local:MyCard Margin="0,0,0,15" Title="正式版" CanSwap="True" IsSwapped="True">
+                    <StackPanel x:Name="PanRelease" Margin="25,37,25,10" />
+                </local:MyCard>
+                <local:MyCard Margin="0,0,0,15" Title="预览版" CanSwap="True" IsSwapped="True">
+                    <StackPanel x:Name="PanSnapshot" Margin="25,37,25,10" />
+                </local:MyCard>
+
+            </StackPanel>
+            <StackPanel x:Name="PanDetail" Margin="25,10" Visibility="Collapsed">
+                <local:MyCard Margin="0,15" Title="安装服务端">
+                    <StackPanel Margin="25,37,25,15">
+                        <StackPanel Orientation="Horizontal">
+                            <local:MyButton x:Name="BtnBack" Text="← 返回" MinWidth="90" Height="30" Padding="12,0" />
+                            <TextBlock x:Name="LabDetailVersion" VerticalAlignment="Center" FontSize="16" Margin="16,0,0,0" />
+                        </StackPanel>
+                        <TextBlock Text="加载器" Opacity="0.6" FontSize="12" Margin="0,16,0,6" />
+                        <WrapPanel>
+                            <local:MyButton x:Name="BtnLoaderVanilla" Text="原版" MinWidth="100" Height="30" Padding="12,0" Margin="0,0,10,8" ColorType="Highlight" />
+                            <local:MyButton x:Name="BtnLoaderForge" Text="Forge" MinWidth="100" Height="30" Padding="12,0" Margin="0,0,10,8" />
+                            <local:MyButton x:Name="BtnLoaderNeoForge" Text="NeoForge" MinWidth="100" Height="30" Padding="12,0" Margin="0,0,10,8" />
+                            <local:MyButton x:Name="BtnLoaderFabric" Text="Fabric" MinWidth="100" Height="30" Padding="12,0" Margin="0,0,10,8" />
+                            <local:MyButton x:Name="BtnLoaderPaper" Text="Paper" MinWidth="100" Height="30" Padding="12,0" Margin="0,0,10,8"
+                                            ToolTip="Bukkit / Spigot 生态的高性能服务端，适合装插件。&#xa;选它时下面的「加载器版本」显示的是 Paper 构建号。" />
+                            <local:MyButton x:Name="BtnLoaderPurpur" Text="Purpur" MinWidth="100" Height="30" Padding="12,0" Margin="0,0,10,8"
+                                            ToolTip="Paper 的增强版，配置项更多（可调 TPS、生成规则等），插件兼容 Paper。&#xa;「加载器版本」显示的是 Purpur 构建号。" />
+                            <local:MyButton x:Name="BtnLoaderFolia" Text="Folia" MinWidth="100" Height="30" Padding="12,0" Margin="0,0,10,8"
+                                            ToolTip="Paper 的多线程分支，能利用多核，但插件需要专门适配。&#xa;「加载器版本」显示的是 Folia 构建号。" />
+                        </WrapPanel>
+                        <TextBlock Text="加载器版本" Opacity="0.6" FontSize="12" Margin="0,12,0,6" x:Name="LabLoaderVersionTitle" Visibility="Collapsed" />
+                        <local:MyComboBox x:Name="ComboLoaderVersion" Height="30" Visibility="Collapsed" />
+                        <TextBlock x:Name="LabLoaderHint" Opacity="0.6" FontSize="12" Margin="0,8,0,0" Text="原版 / Forge / NeoForge / Fabric / Paper / Purpur / Folia 都能装，挑一个加载器再选版本。" />
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <TextBlock VerticalAlignment="Center" Text="安装器代理" Margin="0,0,10,0" Opacity="0.8" />
+                            <local:MyTextBox x:Name="TextInstallerProxy" Width="220" Height="28" MaxLength="60"
+                                             local:SettingService.Key="ServerInstallerProxy"
+                                             HintText="可选，如 127.0.0.1:7890"
+                                             ToolTip="Forge / NeoForge 的安装器要直连官方仓库（maven.neoforged.net 等），国内常连不上。&#xa;填了你本机的 HTTP 代理（host:port），安装器就会走它；留空则只跟随系统代理。" />
+                            <TextBlock VerticalAlignment="Center" Margin="12,0,0,0" Opacity="0.6" FontSize="12" TextWrapping="Wrap"
+                                       Text="只在装 Forge / NeoForge 时用到；走系统代理的话这里可以留空" />
+                        </StackPanel>
+                        <local:MyButton x:Name="BtnInstall" Text="开始下载" MinWidth="120" Height="32" Padding="14,0" Margin="0,16,0,0" ColorType="Highlight" />
+                        <TextBlock x:Name="LabStatus" Opacity="0.75" FontSize="12" Margin="0,8,0,0" Text="" />
+                    </StackPanel>
+                </local:MyCard>
+            </StackPanel>
+        </Grid>
+    </local:MyScrollViewer>
+</local:MyPageRight>

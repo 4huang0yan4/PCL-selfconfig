@@ -1,0 +1,11 @@
+{
+	"__Author__": "PCL-拾光启动器",
+	"Title": "模组加载器与下载源",
+	"Description": "Forge / NeoForge / Fabric / LiteLoader / OptiFine 各自是谁提供、走哪个源，以及怎么换成自己的镜像",
+	"Types": [
+		"指南"
+	],
+	"Keywords": "加载器 Forge NeoForge Fabric LiteLoader OptiFine Quilt maven meta 镜像 自定义下载源 403 429",
+	"ShowInPublic": true,
+	"ShowInSnapshot": true
+}

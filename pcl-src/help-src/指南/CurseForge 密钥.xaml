@@ -1,0 +1,58 @@
+<local:MyCard Title="CurseForge 密钥是干什么的？" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="CurseForge 的官方 API 要求每个请求带一个密钥（x-api-key）。填了它，搜索模组、整合包时就能直连 api.curseforge.com，速度快、结果全、新版本同步也及时。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="不填也能用：请求会自动转到 MCIM 镜像（mod.mcimirror.top），由镜像服务端代付密钥。代价是刚发布的文件可能要等同步。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="不填会怎样？" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="能正常搜索和下载，日志里会出现 403 Forbidden: API Key missing or invalid，然后自动改用镜像，属于正常现象。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="只在「镜像挂掉」时会影响 CurseForge 来源的搜索；Modrinth 完全不受影响（它不需要密钥）。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="怎么申请" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="1. 打开 https://console.curseforge.com/ ，用 CurseForge 账号登录。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="2. 进入 API Keys → Create API Key，用途填个人启动器之类的说明。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. 提交后复制生成的密钥，形如 $2a$10$ 开头的一长串。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="注意：官方给的有效期是 90 天，到期后密钥失效、直连又会 403，需要重新生成一把。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="填在哪、到期怎么提醒" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="填在 设置 → 其他 → 官方服务凭据 的「CurseForge API Key」那一行；同一条里还有「密钥有效期（天）」，默认 90，按你申请时看到的填。点这一行的「确认」保存，会弹 5 秒倒计时重启框。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="到期提醒分两档：剩余 4 到 10 天弹小提示框（可勾「不再提醒」）；剩余 3 天以内（含已过期）强制弹窗，不受「不再提醒」影响，但每天最多一次。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="换了新密钥后计时会从当天重新开始，屏蔽标记也会清掉，下一轮重新提醒。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="模组下载会跟着变吗？" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="会。模组下载跟微软登录没关系（离线登录也能下模组），它只受两件事影响：搜索来源、以及来源背后的服务是否正常。常见三种变动：" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="1. 密钥到期：直连 api.curseforge.com 变 403，程序自动改走 MCIM 镜像，还能搜能下，但当天刚发布的文件可能要等同步。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="2. 镜像不稳或关停：CurseForge 来源的搜索和下载可能变慢甚至失败。这时填一把有效密钥直连官方 API，就能绕开镜像。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. Modrinth 不受影响：它不需要密钥，也不走 CurseForge 那套接口，出问题先切到它试，能快速判断是哪边的问题。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="排查顺序：搜索结果为空或下载报错时，先到「下载 → 社区资源」把来源换成 Modrinth 试一次；Modrinth 正常而 CurseForge 不行，就是密钥或镜像的问题（日志里 403 是密钥失效，连不上或超时是镜像）；两边都不行再去查网络和下载源。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="注意：设置里的「下载源（自定义镜像）」只作用于游戏本体、版本列表和加载器安装器，对模组无效，模组只走 MCIM 镜像或 CurseForge 官方 API。" />
+    </StackPanel>
+</local:MyCard>

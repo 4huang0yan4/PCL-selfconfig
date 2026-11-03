@@ -1,0 +1,9 @@
+{
+	"__Author__": "PCL-拾光启动器",
+	"Title": "微软正版登录",
+	"Description": "为什么需要自己申请 Client ID，以及怎么申请、填在哪",
+	"Types": ["指南"],
+	"Keywords": "微软 正版 登录 Client ID Entra Azure 设备码 账户",
+	"ShowInPublic": true,
+	"ShowInSnapshot": true
+}

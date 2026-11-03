@@ -1,0 +1,23 @@
+<Window x:Class="WindowWhitelistRemove"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:PCL"
+        Title="删除白名单玩家" Width="360" Height="440"
+        Background="#FFF2F7FF"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Text="勾选要移出白名单的玩家（可多选）：" FontSize="13" Margin="0,0,0,8" />
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="PanList" />
+        </ScrollViewer>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <local:MyButton x:Name="BtnOk" Text="删除选中" MinWidth="100" Height="30" Padding="12,0" />
+            <local:MyButton x:Name="BtnCancel" Text="取消" MinWidth="80" Height="30" Padding="12,0" Margin="10,0,0,0" />
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,23 @@
+﻿<local:MyPageRight
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PCL" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+    mc:Ignorable="d" x:Class="PageDownloadPlugin"
+    PanScroll="Content">
+    <local:PageResource x:Name="Content" PageType="Plugin" TypeName="插件" TypeNameSpaced=" 插件 ">
+        <local:MyComboBoxItem Content="全部" Tag="" IsSelected="True" />
+        <local:MyComboBoxItem Content="Bukkit" Tag="/bukkit" />
+        <local:MyComboBoxItem Content="Spigot" Tag="/spigot" />
+        <local:MyComboBoxItem Content="Paper" Tag="/paper" />
+        <local:MyComboBoxItem Content="Purpur" Tag="/purpur" />
+        <local:MyComboBoxItem Content="Folia" Tag="/folia" />
+        <local:MyComboBoxItem Content="Velocity" Tag="/velocity" />
+        <local:MyComboBoxItem Content="BungeeCord" Tag="/bungeecord" />
+        <local:MyComboBoxItem Content="管理工具" Tag="/management" />
+        <local:MyComboBoxItem Content="实用工具" Tag="/utility" />
+        <local:MyComboBoxItem Content="经济" Tag="/economy" />
+        <local:MyComboBoxItem Content="游戏机制" Tag="/game-mechanics" />
+        <local:MyComboBoxItem Content="世界生成" Tag="/worldgen" />
+        <local:MyComboBoxItem Content="反作弊" Tag="/anticheat" />
+    </local:PageResource>
+</local:MyPageRight>

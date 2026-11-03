@@ -1,0 +1,28 @@
+# ── 凭证：任何情况下都不提交 ──────────────────────
+secrets.env
+*.env
+*.key
+*.pem
+launcher-dev/evidence/*credential*
+launcher-dev/evidence/*reveal*
+launcher-dev/evidence/*masked*
+
+# ── 编译中间产物 ────────────────────────────────
+obj/
+bin/
+.vs/
+*.user
+*.suo
+*.cache
+
+# ── 本地运行物（不进仓库）───────────────────────
+.minecraft/
+PCL/
+PCL-custom/
+_tools/
+
+# ── 系统与编辑器 ────────────────────────────────
+Thumbs.db
+desktop.ini
+.DS_Store
+*.log

@@ -1,0 +1,85 @@
+<local:MyCard Title="能装哪些加载器" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="本分支内置支持 5 种加载器：Forge、NeoForge、Fabric、LiteLoader、OptiFine，都可以在 启动 → 版本选择 里的「自动安装」中找到。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="Quilt 目前不支持：上游没有实现对它的自动安装，遇到 Quilt 整合包会直接提示安装失败。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="注意区分：加载器是「让模组能跑起来的环境」，模组本体是「Modrinth / CurseForge 上下载的文件」，两者走的下载路线完全不同。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="各加载器是谁提供的" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="加载器全部由各自的第三方团队维护，不是 Mojang 也不是 PCL 做的。它们的官方源如下：" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· Forge：列表与安装器在 files.minecraftforge.net，库文件在 maven.minecraftforge.net" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· NeoForge：列表与文件都在 maven.neoforged.net，1.20.1 的包名仍是 forge，之后改为 neoforge" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· Fabric：列表在 meta.fabricmc.net，库文件在 maven.fabricmc.net" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· LiteLoader：列表在 dl.liteloader.com，文件名形如 liteloader-installer-1.12-00-SNAPSHOT.jar" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· OptiFine：列表抓取自 optifine.net/downloads（官方页面，更新慢且容易被拦）" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="国内为什么通常不用官方源" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="上面这些站点都在境外，直连经常超时或极慢。所以 PCL 默认把它们全部换到国内镜像。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="具体映射关系（BMCLAPI 侧的路径）：Forge 走 /forge/minecraft 与 /forge/minecraft/版本号，NeoForge 走 /neoforge/meta/api/maven，Fabric 走 /fabric-meta/v2/versions，LiteLoader 走 /maven/com/mumfrey/liteloader/versions.json，OptiFine 走 /optifine/versionList。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="加载器所需的库文件（minecraftforge、fabricmc、neoforged 三种）则不按加载器分类，统一替换成 /maven 或 /libraries 两个候选路径。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="重要：这三类加载器的库文件在下载时不会加原版地址兜底，只有镜像两个候选。所以如果你的自定义镜像缺了某个 jar，这里是一定会失败的，没有第二种选择。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="怎么换成自己的镜像" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="加载器与原版本体共用同一个开关：设置 → 其他 → 下载 → 下载源（自定义镜像）。填好「镜像根地址」点「确认」，重启后生效。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="只需填一个根地址，五个加载器的路径会自动拼上去，不用逐项配置。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="填写格式：https 开头的根地址，结尾斜杠会自动去掉；只写域名会自动补 https:// 。留空即回到默认 BMCLAPI。改完必须重启，下载地址只在启动时读一次。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="自建镜像要求目录结构与 BMCLAPI 完全一致，否则加载器列表会解析失败并报「版本列表解析失败」。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="加载器需要申请什么吗" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="加载器本身不需要：它们的仓库都是公开的，安装时不用任何密钥、账号或授权，直接能下。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="真正需要自己申请的，是下面这两样，都在 设置 → 其他 → 官方服务凭据：" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 微软登录 Client ID —— 用于正版登录，进正版服务器、换正版皮肤都要它。申请步骤见「微软正版登录」。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· CurseForge 密钥 —— 加载器装好后，从 CurseForge 下模组、整合包、地图才需要它，有效期 90 天，到期会自动降级到 MCIM 镜像。申请步骤见「CurseForge 密钥」。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="只用 Modrinth 下模组的话，这两样都可以不配。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="加载器装不上怎么排查" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="1. 列表空白或报「版本列表解析失败」：自定义镜像不支持该加载器路径。把镜像清空确认回到默认再试。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="2. 列表有但装到一半失败：多半是加载器的库文件在镜像上缺失（这类没有原版兜底）。换个镜像，或暂时把自定义镜像留空。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. OptiFine 列表出不来：它抓的是 optifine.net 网页，官方页面改版或拦爬都会失败，属于常见现象，稍后再试。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="4. 老版本 Forge（1.5.2 之类）装不上：这些走的是 installer.jar 的特殊分支，成功率本来就低，建议换较新的版本。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="5. 报 403 / 429：镜像站限流。降低「最大线程数」，等待片刻重试。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="6. NeoForge 始终很慢：它的文件地址写死在官方 maven.neoforged.net 上，不受任何镜像开关控制，只能靠网络本身。" />
+    </StackPanel>
+</local:MyCard>

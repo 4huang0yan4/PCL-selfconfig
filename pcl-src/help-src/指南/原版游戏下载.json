@@ -1,0 +1,11 @@
+{
+	"__Author__": "PCL-拾光启动器",
+	"Title": "原版游戏下载",
+	"Description": "本体、assets、libraries 从哪来，三个下载开关的关系，要不要申请密钥，下不动怎么排查",
+	"Types": [
+		"指南"
+	],
+	"Keywords": "原版 游戏下载 世界 本体 客户端 jar assets libraries version_manifest 版本列表 镜像 BMCLAPI 下载源 429 403",
+	"ShowInPublic": true,
+	"ShowInSnapshot": true
+}

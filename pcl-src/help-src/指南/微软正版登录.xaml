@@ -1,0 +1,79 @@
+<local:MyCard Title="微软登录是干什么的？" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="用正版 Microsoft 账户登录，才能进入正版服务器、使用正版皮肤，以及给游戏内换上你自己的账号。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="不用正版也能玩：启动页选「离线登录」，随便起个用户名即可，只是进不了正版验证的服务器。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="为什么要自己申请？" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="微软登录必须由一个「应用（客户端）ID」发起。官方版用的是 PCL 自己的，开源版里这个值被清空了（是空的字面量），所以没填之前点微软登录会报 AADSTS900144（request body must contain client_id）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="自己注册一个应用是免费的，几分钟就能拿到。但拿到 ID 之后还有第二关：Mojang 的人工审核，见「第二步」那张卡片。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="也不能去用别人（包括官方 PCL）的 ID：微软的应用条款明确禁止，被查到会被吊销。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="第一步：注册一个应用" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="0. 先确认你有「目录」。如果下面第 1 步打开后把你带到「创建 Azure 免费账户」并要求绑卡，说明这个账号名下还没有目录——不要绑卡，注册应用不需要订阅。先建一个免费目录（Entra 管理中心里「创建租户」，只要手机验证），或换一个已经有目录的账号。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="1. 点 设置 → 其他 里那个「打开 Entra 注册页」按钮；或手动访问 https://entra.microsoft.com/ 后点「应用 → 应用注册 → 新注册」。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="2. 名称随便填（例如 pcl-shiguang）。注意名字里不能出现 Mojang、Minecraft、Microsoft、Live、Xbox、Discord、Hypixel，否则后面的审核会被直接拒。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. 受支持的账户类型选「任何 Microsoft Entra 目录中的账户和个人 Microsoft 账户」。选错会报 unauthorized_client。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="4. 重定向 URI 留空，直接点「注册」。PCL 走设备码流，不需要回跳地址。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="5. 在「概述」页复制两个值：「应用程序（客户端）ID」和「目录（租户）ID」，都是 36 位，第二步要用。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="6. 进「身份验证」页，把「允许公共客户端流」打开（部分界面写作「启用以下移动和桌面应用程序流」），然后保存。不开会报 AADSTS7000218。整个过程不需要客户端密码，也不需要加 API 权限。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="第二步：还差一步——Mojang 审核" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="只注册应用还不够。Mojang 对第三方应用逐个人工审核，没过审的 ID 会在登录最后一步被拒：前三步（微软授权、Xbox、XSTS）都成功，然后弹「当前 IP 的登录尝试异常」。这句提示是启动器的误判，跟 IP 无关。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="真实原因在日志里：POST https://api.minecraftservices.com/authentication/login_with_xbox 返回 403，内容是 Invalid app registration，指向 https://aka.ms/AppRegInfo 。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="去哪申请：https://aka.ms/mce-reviewappid ，每周审一次，重复提交不会加快。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="要填：联系邮箱（必须与 Azure 门户里的联系方式一致，对不上会被拒）、类型选 New AppID for Approval、应用名、应用程序（客户端）ID、目录（租户）ID、关联网址，以及一段说明用途的理由。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="理由里说清三件事：这是个人自用的启动器分支、不改动认证流程、会正常验证游戏所有权且不打包游戏本体。审核通过前只能离线登录或用外置登录。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="填在哪、什么时候生效" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="填在 设置 → 其他 →「官方服务凭据」卡片的「微软登录 Client ID」那一行，点该行的「确认」保存。保存后会弹 5 秒倒计时并重启启动器，重启后才生效。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="怎么判断配置对不对：回启动页点微软登录，能看到「登录 Minecraft」的网页地址和一串 9 位代码，说明 ID、账户类型、公共客户端流三项都对了。这时如果最后仍然失败，就只剩 Mojang 审核这一关。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="想取消，把这一行「重置」清空再「确认」即可，之后只能离线登录。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="常见报错对照" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="AADSTS900144：client_id 是空的，ID 没填或没保存。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="AADSTS7000218：没开「允许公共客户端流」。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="unauthorized_client 或 AADSTS700016：「受支持的账户类型」选错了，或 ID 复制错了。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="AADSTS16000：这个账号被路由到了微软的内部租户，说明它名下还没有目录，按「第一步」第 0 条处理。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="403 Invalid app registration：Azure 那边配置都对，只差 Mojang 审核，见「第二步」那张卡片。" />
+    </StackPanel>
+</local:MyCard>

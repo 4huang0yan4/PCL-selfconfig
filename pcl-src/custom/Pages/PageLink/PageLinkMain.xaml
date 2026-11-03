@@ -1,0 +1,283 @@
+<local:MyPageRight
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PCL" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             mc:Ignorable="d" x:Class="PageLinkMain"
+             d:DesignWidth="800" d:DesignHeight="800">
+    <Grid>
+        <Grid x:Name="PanContent">
+            <!-- 联机页内容比一屏高（陶瓦卡片 + 联机工具卡片），必须能滚。
+                 「设置 → 联机」那一页早就用 MyScrollViewer 包住了，这里此前漏了，才出现显示不全。
+                 MinHeight 绑 ViewportHeight：内容不满一屏时仍然垂直居中，超出时才出滚动条。 -->
+            <local:MyScrollViewer x:Name="PanLinkScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid x:Name="PanSelect" MinHeight="{Binding ViewportHeight, ElementName=PanLinkScroll}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="35" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="10" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="1*" />
+                </Grid.RowDefinitions>
+                                                                <local:CompTerracotta Grid.Row="1" Grid.ColumnSpan="3" Margin="20,0" HorizontalAlignment="Center" MaxWidth="700" />
+<local:MyCard x:Name="CardLinkTool" Grid.Row="3" Grid.ColumnSpan="3" Margin="20,0" HorizontalAlignment="Center" MaxWidth="700" CornerRadius="13">
+                    <StackPanel Margin="25,22,25,18">
+                        <TextBlock Text="联机方案（第三方工具）" FontSize="20" Foreground="{DynamicResource ColorBrush3}" />
+                        <TextBlock Opacity="0.65" FontSize="13" LineHeight="18" TextWrapping="Wrap" Margin="0,8,0,14"
+                                   Text="本版本不含 PCL 自带联机，改用第三方工具。没选程序时，「启动」会打开樱花穿透（SakuraFrp）的下载页；装好后点「选择」指定它的 exe，就能在这里一键启动。完整流程见「更多 → 帮助 → 指南 → 联机使用方法」。" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="Name" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="30" />
+                                <RowDefinition Height="6" />
+                                <RowDefinition Height="30" />
+                            </Grid.RowDefinitions>
+                            <TextBlock VerticalAlignment="Center" HorizontalAlignment="Left" Text="程序名称" Margin="0,0,20,0" />
+                            <local:MyTextBox x:Name="TextLinkName" Grid.Column="1" Grid.ColumnSpan="3" MaxLength="60" IsReadOnly="True" HintText="未选择"
+                                             ToolTip="由所选 exe 的文件名自动填入，不需要手填；要清空请点「重置」" />
+                            <TextBlock Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Left" Text="程序路径" Margin="0,0,20,0" />
+                            <local:MyTextBox x:Name="TextLinkPath" Grid.Row="2" Grid.Column="1" MaxLength="260" HintText="未选择程序（点右侧「选择」浏览 exe）"
+                                             ToolTip="选联机工具的 exe；选完即时生效，「启动」会直接拉起它" />
+                            <local:MyButton x:Name="BtnLinkPick" Grid.Row="2" Grid.Column="2" Height="30" Text="选择" MinWidth="76" Padding="10,0" Margin="10,0,0,0"
+                                            ToolTip="浏览选择联机工具的 exe（选完即保存，名称自动填）" />
+                            <local:MyButton x:Name="BtnLinkUse" Grid.Row="2" Grid.Column="3" Height="30" Text="启动" MinWidth="76" Padding="10,0" Margin="10,0,0,0" ColorType="Highlight"
+                                            ToolTip="启动联机工具；没配程序时会打开下载页" />
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <local:MyButton x:Name="BtnLinkReset" Text="重置" MinWidth="90" Padding="13,0" Margin="0,0,12,0"
+                                            ToolTip="清空两行，等于回到默认的樱花穿透（点完即时生效，不需要再确认）" />
+                            <TextBlock x:Name="LabLinkStatus" VerticalAlignment="Center" TextWrapping="Wrap" Opacity="0.75" FontSize="12" Margin="16,0,0,0" Text="当前：未选择" />
+                        </StackPanel>
+                        <TextBlock Text="更多联机工具（点名字直接打开官网 / 下载页）" Opacity="0.6" FontSize="12" Margin="0,16,0,6" />
+                        <WrapPanel>
+                            <local:MyTextButton Text="»  樱花穿透（SakuraFrp）" FontSize="13" Margin="0,0,18,4"
+                                                local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://www.natfrp.com/tunnel/download" />
+                            <local:MyTextButton Text="»  Radmin VPN" FontSize="13" Margin="0,0,18,4"
+                                                local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://www.radmin-vpn.com/" />
+                            <local:MyTextButton Text="»  ZeroTier" FontSize="13" Margin="0,0,18,4"
+                                                local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://www.zerotier.com/download/" />
+                            <local:MyTextButton Text="»  EasyTier" FontSize="13" Margin="0,0,18,4"
+                                                local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/EasyTier/EasyTier/releases" />
+                        </WrapPanel>
+                        <local:MyCheckBox x:Name="CheckLinkAutoLaunch" Text="启动游戏时自动启动联机工具" Height="22" Margin="0,12,0,0"
+                                          local:SettingService.Key="LinkAutoLaunch"
+                                          ToolTip="勾选后，点「启动游戏」时会顺便把上面配置的联机工具拉起来（已在运行就不重复启动）。默认关闭。" />
+                    </StackPanel>
+                </local:MyCard>
+                <local:MyCard x:Name="CardServer" Grid.Row="5" Grid.ColumnSpan="3" Margin="20,0" HorizontalAlignment="Center" MaxWidth="700" CornerRadius="13">
+                    <StackPanel Margin="25,22,25,18">
+                        <TextBlock Text="服务器" FontSize="20" Foreground="{DynamicResource ColorBrush3}" />
+                        <TextBlock Opacity="0.65" FontSize="13" LineHeight="18" TextWrapping="Wrap" Margin="0,8,0,14"
+                                   Text="填地址后点「加入服务器」直接进服（host 或 host:port，不带端口按 25565）。勾选「启动时默认进入」后，从主页点「启动游戏」也会自动连到这台服务器；取消勾选即恢复原样。" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="Name" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="30" />
+                                <RowDefinition Height="6" />
+                                <RowDefinition Height="30" />
+                            </Grid.RowDefinitions>
+                            <TextBlock VerticalAlignment="Center" HorizontalAlignment="Left" Text="服务器地址" Margin="0,0,20,0" />
+                            <local:MyTextBox x:Name="TextServerAddr" Grid.Column="1" MaxLength="260" HintText="例如 mc.example.com:25565"
+                                             ToolTip="支持域名或 IP；带端口时写 host:port，不带端口按 25565 处理" />
+                            <local:MyButton x:Name="BtnServerJoin" Grid.Column="2" Height="30" Text="加入服务器" MinWidth="110" Padding="12,0" Margin="10,0,0,0" ColorType="Highlight"
+                                            ToolTip="保存地址并立即启动游戏直连；需要先在主页选中一个版本" />
+                            <local:MyButton x:Name="BtnServerAddrClear" Grid.Column="3" Height="30" Text="清空" MinWidth="76" Padding="12,0" Margin="8,0,0,0"
+                                            ToolTip="清空地址和备注，并取消「启动时默认进入」—— 填过一次之后想回到没填的状态，用它" />
+                            <TextBlock Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Left" Text="备注名称" Margin="0,0,20,0" />
+                            <local:MyTextBox x:Name="TextServerName" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" MaxLength="60" HintText="可选，只用于页面显示" />
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <local:MyCheckBox x:Name="CheckServerDefault" Text="启动游戏时默认进入此服务器" Height="22"
+                                              ToolTip="勾选后，从主页点「启动游戏」也会自动连到上面这台服务器；取消勾选恢复原样" />
+                            <TextBlock x:Name="LabServerStatus" VerticalAlignment="Center" TextWrapping="Wrap" Opacity="0.75" FontSize="12" Margin="16,0,0,0" Text="未填写服务器地址" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <TextBlock VerticalAlignment="Center" Text="加入时用" Margin="0,0,12,0" />
+                            <local:MyComboBox x:Name="ComboServerLogin" Width="210" Height="30">
+                                <local:MyComboBoxItem Content="离线登录（推荐）" IsSelected="True" />
+                                <local:MyComboBoxItem Content="微软正版登录" />
+                            </local:MyComboBox>
+                            <local:MyCheckBox x:Name="CheckServerLoginFollow" Text="跟随启动页" Height="22" Margin="14,0,0,0" VerticalAlignment="Center"
+                                              ToolTip="勾上（默认）：这里的登录方式始终等于「启动」页选的那个 —— 启动页用离线，这里就是离线；启动页用正版，这里就是正版。&#xa;取消勾选后才能给这台服务器单独指定登录方式。" />
+                            <TextBlock x:Name="LabServerLoginHint" VerticalAlignment="Center" Text="登录；离线服务器必须关掉下面的「正版验证」" Opacity="0.6" FontSize="12" Margin="12,0,0,0" />
+                        </StackPanel>
+                        <TextBlock Text="服务端配置（改动即时写进当前服务端的 server.properties，下次开服生效）" Opacity="0.6" FontSize="12" Margin="0,14,0,6" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="Name" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="Name" />
+                                <ColumnDefinition Width="1*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="28" />
+                                <RowDefinition Height="6" />
+                                <RowDefinition Height="28" />
+                                <RowDefinition Height="6" />
+                                <RowDefinition Height="28" />
+                            </Grid.RowDefinitions>
+                            <TextBlock VerticalAlignment="Center" Text="端口" Margin="0,0,12,0" />
+                            <local:MyTextBox x:Name="TextServerPort" Grid.Column="1" MaxLength="5" HintText="25565" />
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="最大人数" Margin="14,0,12,0" />
+                            <local:MyTextBox x:Name="TextServerMax" Grid.Column="3" MaxLength="3" HintText="20" />
+                            <local:MyCheckBox x:Name="CheckServerWhitelist" Grid.Row="2" Text="启用白名单" Height="22"
+                                              ToolTip="写入 white-list=true；名单在 server.jar 同目录的 whitelist.json 里维护" />
+                            <local:MyCheckBox x:Name="CheckServerOnlineMode" Grid.Row="2" Grid.Column="1" Text="正版验证" Height="22"
+                                              ToolTip="离线登录的客户端必须关掉它（online-mode=false），否则进不去" />
+                            <TextBlock Grid.Row="4" VerticalAlignment="Center" Text="MOTD" Margin="0,0,12,0" />
+                            <local:MyTextBox x:Name="TextServerMotd" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3" MaxLength="80" HintText="服务器列表里显示的描述" />
+                        </Grid>
+                        <!-- 「离线登录」+「正版验证」同时成立是自相矛盾的，离线客户端一定进不去。
+                             只在冲突时露出来，不自动改配置 —— 用户可能是特意给正版玩家开的服 -->
+                        <local:MyHint x:Name="HintOnlineModeConflict" Theme="Yellow" Margin="0,8,0,0" Visibility="Collapsed"
+                                      Text="「加入时用」选的是离线登录，但「正版验证」勾着 —— 离线客户端会被服务端拒绝。&#xa;用离线服就把「正版验证」取消勾选；要开正版服，把上面的「加入时用」改成「正版登录」。" />
+                        <TextBlock Text="游戏规则（同样写进 server.properties，下次开服生效）" Opacity="0.6" FontSize="12" Margin="0,14,0,6" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="Name" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="Name" />
+                                <ColumnDefinition Width="1*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="30" />
+                                <RowDefinition Height="6" />
+                                <RowDefinition Height="30" />
+                            </Grid.RowDefinitions>
+                            <TextBlock VerticalAlignment="Center" Text="难度" Margin="0,0,12,0" />
+                            <local:MyComboBox x:Name="ComboServerDifficulty" Grid.Column="1" Height="30">
+                                <local:MyComboBoxItem Content="和平" />
+                                <local:MyComboBoxItem Content="简单" />
+                                <local:MyComboBoxItem Content="普通" IsSelected="True" />
+                                <local:MyComboBoxItem Content="困难" />
+                            </local:MyComboBox>
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="游戏模式" Margin="14,0,12,0" />
+                            <local:MyComboBox x:Name="ComboServerGamemode" Grid.Column="3" Height="30">
+                                <local:MyComboBoxItem Content="生存" IsSelected="True" />
+                                <local:MyComboBoxItem Content="创造" />
+                                <local:MyComboBoxItem Content="冒险" />
+                                <local:MyComboBoxItem Content="观察者" />
+                            </local:MyComboBox>
+                            <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="视距" Margin="0,0,12,0" />
+                            <local:MyTextBox x:Name="TextServerViewDistance" Grid.Row="2" Grid.Column="1" MaxLength="2" HintText="10"
+                                             ToolTip="3–32。越大越吃内存，人多时建议 8–10" />
+                            <local:MyCheckBox x:Name="CheckServerPvp" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2" Text="允许 PvP" Height="22" />
+                        </Grid>
+                        <!-- 自动保存的反馈行。原来挂在「关闭服务器」按钮旁边，离配置区隔了整块玩家名单，
+                             改完端口根本看不见反馈；现在紧贴配置下方 -->
+                        <TextBlock x:Name="LabConfigAutoSave" Opacity="0.55" FontSize="12" Margin="0,8,0,0"
+                                   Text="改动会自动写入 server.properties，不需要再点保存" TextWrapping="Wrap" />
+                        <TextBlock Text="玩家名单（勾上就是管理员，取消勾选变回普通玩家）" Opacity="0.6" FontSize="12" Margin="0,14,0,6" />
+                        <!-- 名单单独套一层边框：不套的时候列表和下面的输入框糊成一片，看不出这块到底管到哪 -->
+                        <Border BorderThickness="1" CornerRadius="8" BorderBrush="{DynamicResource ColorBrush6}" Background="{DynamicResource ColorBrush8}" Padding="6,4" Margin="0,0,0,2">
+                            <local:MyScrollViewer Height="120" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel x:Name="PanPlayerList" />
+                            </local:MyScrollViewer>
+                        </Border>
+                        <local:MyTextBox x:Name="TextWhitelistAdd" MaxLength="1000" HintText="输入玩家名：空格或英文逗号分隔，可一次多个，如 Steve Alex,Notch"
+                                         ToolTip="批量添加 / 删除都读这个框；分隔符用空格或英文逗号 ," />
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <local:MyButton x:Name="BtnWhitelistAdd" Text="添加玩家" MinWidth="100" Height="30" Padding="12,0" ColorType="Highlight" />
+                            <local:MyButton x:Name="BtnWhitelistRemove" Text="删除玩家" MinWidth="100" Height="30" Padding="12,0" Margin="10,0,0,0" />
+                            <local:MyButton x:Name="BtnWhitelistLoad" Text="刷新名单" MinWidth="100" Height="30" Padding="12,0" Margin="10,0,0,0" />
+                            <local:MyButton x:Name="BtnModsAdd" Text="添加 mod" MinWidth="100" Height="30" Padding="12,0" Margin="10,0,0,0"
+                                            ToolTip="选择 jar 后复制到 mods 目录；重名会覆盖" />
+                            <local:MyButton x:Name="BtnModsOpen" Text="打开 mods 目录" MinWidth="120" Height="30" Padding="12,0" Margin="10,0,0,0"
+                                            ToolTip="服务端是 Fabric/Forge 时，mods 里的 jar 才会被加载" />
+
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <TextBlock VerticalAlignment="Center" Text="已装服务端" Margin="0,0,10,0" />
+                            <local:MyComboBox x:Name="ComboInstalledServer" Width="320" Height="30" ToolTip="在「下载 → 服务器」里下载 / 安装过的服务端" />
+                            <local:MyButton x:Name="BtnRefreshInstalled" Text="刷新" MinWidth="76" Height="30" Padding="12,0" Margin="10,0,0,0"
+                                            ToolTip="重新扫描本地记录：目录已经不存在的条目会被清掉，不再留在下拉列表里" />
+                            <local:MyButton x:Name="BtnAddInstalled" Text="添加已有" MinWidth="90" Height="30" Padding="12,0" Margin="10,0,0,0"
+                                            ToolTip="只用于本机磁盘上已经装好的服务端目录（自己搭的、从别处拷来的、别的启动器装的）。&#xa;目录里要有 server.jar / fabric-server-launch.jar / run.bat 之一。&#xa;&#xa;云服务器 / 别人机器上的服务端不能用这个加，改用下面的「远程服务器（RCON）」。" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <local:MyButton x:Name="BtnServerStart" Text="开服" MinWidth="100" Height="30" Padding="12,0" ColorType="Highlight"
+                                            ToolTip="启动「已装服务端」里选中的那个；没选中就用最近一次安装 / 添加的服务端，都没有才让你挑一次文件。&#xa;Forge / NeoForge 目录自动用目录里的 run.bat 启动，不会去跑 installer。" />
+                            <local:MyButton x:Name="BtnOpenServerDir" Text="打开目录" MinWidth="90" Height="30" Padding="12,0" Margin="10,0,0,0" />
+                            <local:MyButton x:Name="BtnOpenServerLog" Text="打开日志" MinWidth="90" Height="30" Padding="12,0" Margin="10,0,0,0"
+                                            ToolTip="打开这个服务端的 logs\latest.log；没有 latest.log 就取 logs 里最新的那个并选中它。&#xa;服务端至少启动过一次才会有日志。" />
+                            <local:MyButton x:Name="BtnDeleteInstalled" Text="删除" MinWidth="90" Height="30" Padding="12,0" Margin="10,0,0,0" ColorType="Red" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <local:MyButton x:Name="BtnServerStop" Text="关闭服务器" MinWidth="110" Height="30" Padding="12,0" ColorType="Red"
+                                            ToolTip="发送 stop，保存世界后退出；15 秒未退出会强制结束" />
+                        </StackPanel>
+                        <local:MyCheckBox x:Name="CheckServerStopOnExit" Text="关闭启动器时一并关掉本机服务端" Height="22" Margin="0,10,0,0"
+                                          ToolTip="不勾（默认）：关掉启动器后服务端继续在后台跑，玩家还能进；但启动器再也接管不了它的控制台，要关它得重开启动器点「关闭服务器」，或用任务管理器结束 java。&#xa;勾上：关启动器时先给服务端发 stop，等它保存世界退出。" />
+                        <TextBlock Text="服务端控制台（实时输出；下面输入命令回车发送，不用带斜杠）" Opacity="0.6" FontSize="12" Margin="0,14,0,6" />
+                        <local:MyTextBox x:Name="TextServerConsole" Height="150" IsReadOnly="True" AcceptsReturn="True"
+                                         TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                         FontFamily="Consolas" FontSize="12" HintText="服务端启动后这里会实时显示输出" />
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <local:MyTextBox x:Name="TextServerCommand" Width="400" HintText="命令（不用带 / ），如 list、say 你好、gamemode creative Steve"
+                                             ToolTip="直接写命令本体，不用带斜杠；写了 / 也会自动去掉。回车即发送。" />
+                            <local:MyButton x:Name="BtnServerCommandSend" Text="发送" MinWidth="80" Height="30" Padding="12,0" Margin="10,0,0,0" ColorType="Highlight" />
+                            <local:MyButton x:Name="BtnServerConsoleClear" Text="清空" MinWidth="80" Height="30" Padding="12,0" Margin="10,0,0,0" />
+                        </StackPanel>
+                        <TextBlock Text="远程服务器（RCON）：控制云服务器 / 别人机器上的服务端。需要那边在 server.properties 里开 enable-rcon=true 并设好 rcon.port / rcon.password。"
+                                   Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,14,0,6" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="1*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="地址" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <local:MyTextBox x:Name="TextRconHost" Grid.Column="1" MaxLength="120" HintText="例如 mc.example.com" />
+                            <TextBlock Grid.Column="2" Text="端口" VerticalAlignment="Center" Margin="12,0,8,0" />
+                            <local:MyTextBox x:Name="TextRconPort" Grid.Column="3" Width="76" MaxLength="5" HintText="25575" />
+                            <TextBlock Grid.Column="4" Text="密码" VerticalAlignment="Center" Margin="12,0,8,0" />
+                            <local:MyTextBox x:Name="TextRconPass" Grid.Column="5" MaxLength="64" HintText="rcon.password"
+                                             ToolTip="默认「用完即清」：连上之后这里会被清空，下次要重输。&#xa;本机服务端例外 —— 会直接读它自己的 server.properties，重启启动器也能自动接管。" />
+                        </Grid>
+                        <local:MyHint x:Name="HintRconPass" Theme="Yellow" Margin="0,6,0,0"
+                                      Text="默认一次性输入：连接成功后密码框会被清空，下次连接要重新输入，不落盘（推荐）。本机服务端例外，它从自己的 server.properties 里现读，重启启动器照样能自动接管；远程服务器每次手输。需要免输就勾「记住密码」，会有一次确认提醒。" />
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <local:MyCheckBox x:Name="CheckRconRememberPass" Text="记住密码" Height="22" VerticalAlignment="Center"
+                                              ToolTip="默认不勾：RCON 密码用完即清，不写到磁盘上。&#xa;勾上（会有一次风险确认）才加密存进启动器设置，下次免输 —— 但等于把管理员凭据留了一份在本机。" />
+                            <local:MyCheckBox x:Name="CheckRconShowPass" Text="显示密码" Height="22" Margin="14,0,0,0" VerticalAlignment="Center"
+                                              ToolTip="只在勾了「记住密码」时可用：把存着的那份密码显示成明文，方便抄到别的工具里。&#xa;没记住密码时框里本来就是你自己输的明文，不需要这个开关。" />
+                            <local:MyButton x:Name="BtnRconConnect" Text="连接" MinWidth="80" Height="30" Padding="12,0" Margin="14,0,0,0" ColorType="Highlight"
+                                            ToolTip="连上之后，上面的命令输入框发的是 RCON 命令，回显显示在控制台里" />
+                            <local:MyButton x:Name="BtnRconDisconnect" Text="断开" MinWidth="80" Height="30" Padding="12,0" Margin="8,0,0,0" />
+                            <local:MyButton x:Name="BtnRconRefresh" Text="刷新" MinWidth="76" Height="30" Padding="12,0" Margin="8,0,0,0"
+                                            ToolTip="按已保存的设置重新回填地址 / 端口，并检查连接是否还活着（连过之后对面重启过，这里会显示回未连接）" />
+                            <local:MyButton x:Name="BtnRconResetUi" Text="重置" MinWidth="76" Height="30" Padding="12,0" Margin="8,0,0,0"
+                                            ToolTip="断开连接，并清空地址、端口（回默认 25575）和密码框；不会改动服务端的 rcon.password，也不动「记住密码」保存的那份" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <local:MyButton x:Name="BtnRconReset" Text="重新生成密码" MinWidth="120" Height="30" Padding="12,0"
+                                            ToolTip="生成一个新的随机密码，写进服务端的 server.properties，并直接把新密码显示出来。&#xa;密码始终以 server.properties 的 rcon.password 为准 —— 换别的启动器或命令行开服用的也是这个。" />
+                            <TextBlock x:Name="LabRconState" VerticalAlignment="Center" Text="未连接" Opacity="0.75" FontSize="12" Margin="14,0,0,0" />
+                        </StackPanel>
+                        <TextBlock x:Name="LabServerProc" Opacity="0.75" FontSize="12" Margin="0,8,0,0" Text="未启动" />
+                    </StackPanel>
+                </local:MyCard>
+            </Grid>
+            </local:MyScrollViewer>
+        </Grid>
+    </Grid>
+</local:MyPageRight>

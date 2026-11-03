@@ -1,0 +1,25 @@
+# 本项目只在 Windows 上构建，工作区统一 CRLF，避免 build.cmd / .ps1 被 checkout 成 LF 后无法执行
+* text=auto eol=crlf
+
+# 二进制：不参与任何换行或文本转换
+*.dll binary
+*.exe binary
+*.jar binary
+*.zip binary
+*.png binary
+*.ico binary
+*.ttf binary
+*.patch -text
+
+# 源码与文档显式声明文本类型
+*.vb    text
+*.xaml  text
+*.cs    text
+*.vbproj text
+*.sln   text
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+*.ps1   text eol=crlf
+*.md    text
+*.json  text
+*.yml   text

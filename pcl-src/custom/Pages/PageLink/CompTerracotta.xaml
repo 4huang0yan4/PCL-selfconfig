@@ -1,0 +1,69 @@
+﻿<UserControl x:Class="CompTerracotta"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PCL"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+    <local:MyCard x:Name="CardTc" Title="陶瓦联机（推荐，点两下就能连）" Margin="0,0,0,15">
+        <StackPanel Margin="25,40,25,20">
+            <TextBlock TextWrapping="Wrap" Opacity="0.7" Margin="0,0,0,10"
+                       Text="不用注册、不用配隧道。房主在游戏里按 Esc「对局域网开放」后点「创建房间」，把出现的房间码发给朋友；朋友粘上房间码点「加入」，再进游戏「多人游戏」双击列表里的「陶瓦联机大厅」即可。" />
+            <TextBlock x:Name="LabTcStatus" TextWrapping="Wrap" Margin="0,0,0,12" FontSize="13"
+                       Text="状态：检查中…" />
+            <Grid Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="Name" />
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center" HorizontalAlignment="Left" Text="房间码" Margin="0,0,25,0" />
+                <local:MyTextBox x:Name="TextTcRoom" Grid.Column="1" MaxLength="40"
+                                 HintText="加入时粘贴对方的房间码，形如 U/XXXX-XXXX-XXXX-XXXX"
+                                 ToolTip="房主建好房后，把界面上显示的这串码复制过来。大小写都行，I 与 O 会自动按 1 和 0 处理。" />
+                <local:MyButton x:Name="BtnTcJoin" Grid.Column="2" Height="30" Text="加入" MinWidth="86" Padding="10,0" Margin="10,0,0,0"
+                                ToolTip="用左边的房间码加入对方的房间" />
+                <local:MyButton x:Name="BtnTcHost" Grid.Column="3" Height="30" Text="创建房间" MinWidth="96" Padding="10,0" Margin="10,0,0,0" ColorType="Highlight"
+                                ToolTip="先在游戏里对局域网开放，再点这里；否则会一直停在「等待游戏开启局域网」" />
+            </Grid>
+            <WrapPanel Margin="0,2,0,0">
+                <local:MyButton x:Name="BtnTcCancel" Text="取消 / 复位" MinWidth="100" Padding="13,0" Margin="0,0,10,6"
+                                ToolTip="把陶瓦退回空闲状态，房间码作废" />
+                <local:MyButton x:Name="BtnTcCopy" Text="复制房间码" MinWidth="116" Padding="13,0" Margin="0,0,10,6"
+                                ToolTip="复制下方勾选的内容：默认房间码，勾选后改为直连地址" />
+                <local:MyButton x:Name="BtnTcInstall" Text="安装 / 更新陶瓦" MinWidth="120" Padding="13,0" Margin="0,0,10,6"
+                                ToolTip="从官方源下载并解压（约 8 MB），会自动校验 SHA-512" />
+                <local:MyButton x:Name="BtnTcStop" Text="关闭陶瓦" MinWidth="96" Padding="13,0" Margin="0,0,10,6"
+                                ToolTip="结束后台的联机进程（游戏里的联机也会随之断开）" />
+                <local:MyButton x:Name="BtnTcMore" Text="更多" MinWidth="96" Padding="13,0" Margin="0,0,10,6" ColorType="Highlight"
+                                ToolTip="展开联机设置：自动复制策略、直连地址开关、删除陶瓦" />
+            </WrapPanel>
+            <StackPanel x:Name="PanTcMore" Visibility="Collapsed" Margin="0,2,0,0">
+                <local:MyCheckBox x:Name="ChkTcAutoAddr" Text="复制时自动检测可用的内容" Height="28"
+                                  HorizontalAlignment="Left" Margin="0,4,0,0"
+                                  ToolTip="勾选（默认）：优先复制房间码，房间码拿不到时才改用直连地址（直连地址只在大厅连不上时兜底）。&#xa;取消勾选：严格按下面的勾选复制，没有就提示没有，不再自动替换。" />
+                <local:MyCheckBox x:Name="ChkTcCopyAddr" Text="「复制」改为复制直连地址（只在连不上大厅时才用得到）" Height="28"
+                                  HorizontalAlignment="Left" Margin="0,2,0,0"
+                                  ToolTip="平时用不到：连上之后进游戏「多人游戏」双击「陶瓦联机大厅」那一条就能进房，不需要地址。&#xa;只有大厅那一条连不上时，才改用「直接连接」粘这个地址兜底。&#xa;它只在你作为游客连上之后才有，而且是游客本机的回环地址（127.0.0.1:端口）；房主没有。" />
+                <TextBlock x:Name="LabTcHostNote" TextWrapping="Wrap" Opacity="0.55" FontSize="11" Margin="0,4,0,0" Visibility="Collapsed"
+                           Text="你是房主：直连地址是游客自己电脑上的回环地址（只在游客那边有用），房主没有可发的直连地址。把「复制房间码」发给朋友就行。" />
+                <TextBlock x:Name="LabTcAutoHint" TextWrapping="Wrap" Opacity="0.55" FontSize="11" Margin="0,4,0,0" Visibility="Collapsed"
+                           Text="自动检测已开启：连上后优先复制房间码；只有房间码拿不到时才改用直连地址（直连地址只在大厅连不上时兜底）。下面的手动勾选暂时隐藏，取消勾选「复制时自动检测可用的内容」即可改回手动。" />
+                <local:MyButton x:Name="BtnTcDelete" Text="删除陶瓦" ColorType="Red" MinWidth="150" Padding="13,0"
+                                Margin="0,12,0,0" HorizontalAlignment="Left"
+                                ToolTip="结束陶瓦进程，并删除 PCL\Terracotta 下已下载的程序（约 8 MB）；会二次确认，删完可重新安装" />
+            </StackPanel>
+            <TextBlock TextWrapping="Wrap" Opacity="0.55" FontSize="11" Margin="0,8,0,0"
+                       Text="连不上怎么办：跨网络、且有一方网络受限（NAT 严格）时容易连不通。大部分以陶瓦联机为主的启动器可以直接互加——HMCL、FCL、ZL2、MoLaunch 等（陶瓦官方接入名单，其中 HMCL 已实测可用）；PCL CE 走的是协议互通，同一局域网能连、跨网受限。也可以改用下方的「联机方案（第三方工具）」走穿透，通常能连上但延迟不保证。" />
+            <TextBlock TextWrapping="Wrap" Opacity="0.45" FontSize="11" Margin="0,6,0,0"
+                       Text="适用版本 0.4.2；双方版本必须一致。房主只开一个世界的局域网，开多个可能连错世界。联机功能由 Terracotta（陶瓦联机）提供，AGPL-3.0 许可。" />
+            <WrapPanel Margin="0,4,0,0">
+                <local:MyTextButton Text="»  Terracotta 项目主页 / 下载" FontSize="12" Margin="0,0,18,2"
+                                    local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/burningtnt/Terracotta/releases" />
+                <local:MyTextButton Text="»  联机常见问题（图文）" FontSize="12" Margin="0,0,18,2"
+                                    local:CustomEventService.EventType="打开帮助" local:CustomEventService.EventData="指南\联机使用方法.json" />
+            </WrapPanel>
+        </StackPanel>
+    </local:MyCard>
+</UserControl>

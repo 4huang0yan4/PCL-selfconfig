@@ -1,0 +1,54 @@
+<local:MyCard Title="为什么联机页没有「创建房间 / 加入房间」？" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="PCL 官方联机需要向官方服务器请求房间配置，并依赖官方与社区提供的 EasyTier 中转节点。开源版里这部分代码被删空了，本地改不出来，所以本版本改为接入第三方联机工具。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="用樱花穿透怎么装（可选工具）" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="1. 打开 https://www.natfrp.com/ 注册账号，并按提示完成实名认证（会收几毛钱验证费）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="2. 打开 https://www.natfrp.com/tunnel/download 下载 SakuraLauncher 并安装。装好之后，它的启动器 exe 就是「程序路径」要指向的文件。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. 回到启动器的「联机」页，点「选择」挑到 SakuraLauncher 的 exe，点「确认」保存。以后直接点「启动联机工具」就能拉起它。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="具体怎么联机（樱花穿透）" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="1. 房主先开游戏、进存档，按 Esc →「对局域网开放」，记下游戏给出的端口号（一般是 5 位数字）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="2. 在樱花穿透里新建隧道：类型选 TCP，本地 IP 填 127.0.0.1，本地端口填上一步那个端口（没改就是 25565）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. 启动隧道，切到「日志」页，会看到一行形如 frp-xxx.com:12345 的地址——这就是给朋友用的连接地址（不用管前面那些符号）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="4. 朋友在游戏里「多人游戏 → 直接连接」，把 frp-xxx.com:12345 粘进去就能进。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="5. 房主的游戏和樱花穿透都必须一直开着，关掉任何一个都会断开。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="连不上先查这几项" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 隧道本地端口和游戏里「对局域网开放」的端口不一致——最常见的原因。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 隧道没启动，或启动后没看到「发现 Minecraft 局域网游戏」那提示。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 朋友没有正版账号：需要房主在「对局域网开放」时把在线模式关掉，或者装 EasyLAN / Lan Server Properties 这类模组来改设置。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 换了存档或重开游戏，端口可能变，隧道里要跟着改。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="不想用樱花穿透的话" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="在「联机」页把工具名称和下载地址改掉就行，比如陶瓦联机（Terracotta，P2P 房间式，不需要实名）、Radmin VPN、ZeroTier。三行都留空会回到默认的樱花穿透。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="「程序路径」是可选的：不填就只能点「打开下载页」，填了才能一键启动。" />
+    </StackPanel>
+</local:MyCard>

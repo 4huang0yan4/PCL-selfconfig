@@ -1,0 +1,85 @@
+<local:MyCard Title="下载原版需要什么？什么都不用申请" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="原版游戏本体（客户端 jar、assets、libraries、natives）是 Mojang 公开提供的，下载它不需要任何账号、密钥或授权。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="也就是说：只要网络通，启动 → 版本选择 → 下载 就能直接装上，不用先去配任何东西。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="需要自己申请的只有两样，都跟下原版本体无关：一是「微软登录 Client ID」（用于正版登录，见「微软正版登录」），二是「CurseForge 密钥」（用于模组、整合包、地图等社区资源，见「CurseForge 密钥」）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="提示：离线玩法也一样能装原版，登录方式只影响进不进得去正版验证的服务器。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="开源版为什么原本下不了" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="上游开源仓库为了合规，把与 Minecraft 下载相关的给定值清空了（也就是 RestrictMcDownload），所以直接从源码编出来的版本无法下载游戏。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="本分支已把该限制解除，因此启动后版本选择页会正常显示原版、Forge、Fabric 等下载入口。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="但官方说得很清楚：他们不会再恢复这部分。所以这条裂缝会长期自己维护，不会等上游。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="三个下载开关，别搞混" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="设置 → 其他 → 下载 里有三处会影响原版下载，作用完全不同：" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 文件下载源：决定「要不要优先走镜像」下载文件本身。三个选项：尽量镜像 / 优先官方（慢了才换镜像）/ 尽量官方。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 版本列表源：决定「左侧版本清单」从哪里拉（即 version_manifest.json）。镜像同步有延迟，刚发布的新版本可能暂时搜不到。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 下载源（自定义镜像）：决定「用哪个镜像站」。留空就用默认的 BMCLAPI。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="一句话记法：前两个是「怎么用镜像」，第三个是「用谁的镜像」。默认状态（优先官方 + 默认 BMCLAPI）通常就是最稳的。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="怎么换成自己的镜像站" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="打开 设置 → 其他 → 下载 → 下载源（自定义镜像），在「镜像根地址」里填一个根地址，例如 https://bmclapi2.bangbang93.com ，点该行的「确认」。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="确认后会弹 5 秒倒计时重启框，必须重启才能真正生效——下载地址只在启动时读取一次。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="格式要求：写 https 开头的根地址，结尾不用带斜杠（会自动去掉）；只填域名会自动补 https:// 。「重置」只是清空输入框，清空后必须再点「确认」才会回到默认。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="自建镜像也可以填（BMCLAPI 是开源的，能自己部署），前提是你的镜像目录结构要与 BMCLAPI 一致：本体走根目录替换，assets 走 /assets，库文件走 /maven 或 /libraries。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="不确定填哪个就别填。默认 BMCLAPI 是国内最稳的一个，留空即可。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="这个开关管不到什么" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="自定义镜像只管「把 Mojang 官方地址替换成镜像」这一件事，下面这些不在它的范围内：" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· Mojang 官方源地址本身——官方就写在他们自己服务器上，改不动，也不需要改。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· Modrinth / CurseForge 的模组、整合包、地图资源——那部分固定走 MCIM 镜像（mod.mcimirror.top），在「社区资源 → 来源」里调，与本开关无关。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· Java 运行时、authlib-injector 等附加组件——各有各自的固定地址。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="加载器类（Forge / NeoForge / Fabric / LiteLoader / OptiFine）是被本开关覆盖的，详见「模组加载器与下载源」。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="下不动怎么排查" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="1. 只在某个阶段卡在 0 KB：多半是线程数开太高被镜像站限速。把「最大线程数」从默认 63 降到 16 再试。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="2. 报 403 / 429：BMCLAPI 在高频率请求下会限流，属于正常。启动器已经做了退避（镜像地址每线程间隔 100 毫秒），仍不行就把线程数再降。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. 版本列表里没有刚出的版本：把「版本列表源」改成「尽量使用官方源」，镜像同步有延迟。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="4. 全是官方地址且速度极慢：把「文件下载源」改成「尽量使用镜像源」。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="5. 某个文件反复下载失败或校验不过：删掉该文件重新下载；整个版本不行就换版本号重装一次。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="6. 全部源都失败：镜像不可用时会自动退回官方源，所以若官方也失败，基本就是网络本身的问题（代理、DNS、防火墙）。" />
+    </StackPanel>
+</local:MyCard>
