@@ -113,6 +113,18 @@ def main():
     if len(after) != len(set(after)):
         print('[FAIL] zip 内仍有重名条目')
         return 1
+
+    # MSBuild 不跟踪 ResXFileRef 指向的 Help.zip：它只比较 Resources.resx 与
+    # obj 里已生成的 .resources 谁更新。换了 zip 却不碰 resx，编译就认为资源没变，
+    # 新帮助静默进不了 exe（本仓库 2026-11-03 踩过一次）。这里统一刷新时间戳。
+    resx = os.path.join(os.path.dirname(os.path.dirname(args.zip_path)),
+                        'My Project', 'Resources.resx')
+    if os.path.isfile(resx):
+        os.utime(resx, None)
+        print('已刷新时间戳: %s' % resx)
+    else:
+        print('[WARN] 未找到 %s，若 Help.zip 未编进 exe 请手动 touch 一下' % resx)
+
     print('[OK] 重新编译后生效: build.cmd -NoRestore')
     return 0
 
