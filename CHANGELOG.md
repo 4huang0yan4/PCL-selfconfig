@@ -1,6 +1,6 @@
 # 变更记录
 
-> 本仓库只发布**源码与变更记录**，不发布二进制。更新由智能体按 `AGENTS.md` 第八节的步骤执行；发布版（Release）只写变更、不附 exe，GitHub 自动附源码 zip。
+> 源码与变更记录在本仓库；发布版（Release）附**发布版 exe**（不含任何官方服务凭据）与 `LICENCE`、声明、使用说明，GitHub 同时自动附源码 zip。更新由智能体按 `AGENTS.md` 第八节的步骤执行。
 > 版本号形如 `<日期>-custom.<当日序号>`，与 `Plain Craft Launcher 2.exe` 启动日志里的版本行一致。
 
 ## 版本索引

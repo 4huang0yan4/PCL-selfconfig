@@ -4,7 +4,7 @@
 > 开源版 **2.99.0.0** 修改而来，与上游开发者无隶属或合作关系，不代表 PCL 官方。
 >
 > 使用与分发遵循上游《PCL 分发有限许可》与《PCL 存储库合理使用指南》，原文见仓库根目录 `LICENCE`；
-> 详细声明见 [`声明.md`](声明.md)。本仓库只发**源代码**，不发成品 exe。
+> 详细声明见 [`声明.md`](声明.md)。源码在此；**发布版 exe 见 [Releases](https://github.com/4huang0yan4/PCL-selfconfig/releases)**，随包附 `LICENCE`、声明与使用说明。
 >
 > 若你是智能体或接手维护的人，**先读 [`AGENTS.md`](AGENTS.md)** —— 里面有源码树对应关系、
 > 编译前提（`build.cmd` 硬依赖未入库的 `_tools\`）和九条硬约束。
