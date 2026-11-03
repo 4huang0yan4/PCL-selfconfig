@@ -219,6 +219,7 @@ Public Class Settings
         New Setting("LinkServerDir", "", Source:=Sources.Registry), '当前服务端目录。Forge/NeoForge 没有 server.jar，只靠 Jar 认不出目录
         New Setting("ServerInstallerProxy", "", Source:=Sources.Registry), '服务端安装器用的 HTTP 代理（host:port，空=只跟随系统代理）
         New Setting("SystemSelfUpdate", True, Source:=Sources.Registry),
+        New Setting("SelfUpdateTag", "", Source:=Sources.Registry), '上次已提示过的 Release tag，后台静默检查时避免重复弹窗
         New Setting("LinkServerLogin", 0, Source:=Sources.Registry),
         New Setting("LinkServerLoginFollow", True, Source:=Sources.Registry), '「加入时用」跟随启动页的登录方式（默认开）；关掉才能给单台服务器指定不同账号
         New Setting("LinkServerList", "", Source:=Sources.Registry), '已装服务端列表（dir / ver / time）
