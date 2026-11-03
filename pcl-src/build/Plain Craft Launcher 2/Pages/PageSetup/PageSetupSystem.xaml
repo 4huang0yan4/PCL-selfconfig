@@ -228,7 +228,7 @@
                 <StackPanel Margin="25,40,25,15">
                     <local:MyCheckBox x:Name="CheckSelfUpdate" Text="检查本分支（GitHub）更新并提示下载" Height="22"
                                       local:SettingService.Key="SystemSelfUpdate"
-                                      ToolTip="开启后启动时检查本仓库的最新 Release（PCL-selfconfig-custom.N），有新版会提示下载并重启。发布版默认开启；自用版建议关闭，避免被发布版覆盖后丢失主题配色。" />
+                                      ToolTip="开启后启动时检查本仓库的最新 Release（PCL-selfconfig-custom.N），有新版会提示下载并重启。默认开启。" />
                 </StackPanel>
             </local:MyCard>
             <!-- <local:MyCard x:Name="CardMain" Margin="0,15" Title="全局设置">

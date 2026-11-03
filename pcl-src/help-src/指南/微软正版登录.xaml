@@ -48,7 +48,7 @@
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
                    Text="要填：联系邮箱（必须与 Azure 门户里的联系方式一致，对不上会被拒）、类型选 New AppID for Approval、应用名、应用程序（客户端）ID、目录（租户）ID、关联网址，以及一段说明用途的理由。" />
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="理由里说清三件事：这是个人自用的启动器分支、不改动认证流程、会正常验证游戏所有权且不打包游戏本体。审核通过前只能离线登录或用外置登录。" />
+                   Text="理由里说清三件事：这是个人维护的启动器分支、不改动认证流程、会正常验证游戏所有权且不打包游戏本体。审核通过前只能离线登录或用外置登录。" />
     </StackPanel>
 </local:MyCard>
 
