@@ -1,7 +1,8 @@
 # 变更记录
 
 > 源码与变更记录在本仓库；发布版（Release）附**发布版 exe**（不含任何官方服务凭据）与 `LICENCE`、声明、使用说明，GitHub 同时自动附源码 zip。更新由智能体按 `AGENTS.md` 第八节的步骤执行。
-> 版本号形如 `<日期>-custom.<当日序号>`，与 `Plain Craft Launcher 2.exe` 启动日志里的版本行一致。
+> **本地构建号**形如 `<日期>-custom.<当日序号>`，与 `Plain Craft Launcher 2.exe` 启动日志里的版本行一致。
+> **对外发布号**为 `PCL-selfconfig-custom.<N>`，从 1 起逐次 +1，与本地构建号解耦——本地一天可以出很多版，对外只按发布次数计。
 
 ## 版本索引
 
@@ -9,7 +10,7 @@
 
 | tag | 日期 | 一句话内容 | 包含版本 |
 |---|---|---|---|
-| `2026.11.03-custom.1` | 2026-11-03 | 改名 PCL 自配版、删主题预设、README 重写、仓库重建为 PCL-selfconfig | custom.1 ~ custom.2 |
+| `PCL-selfconfig-custom.1` | 2026-11-03 | 首个公开版：改名 PCL 自配版、固定龙猫蓝、删主题预设、README 重写、服务端/联机/导出等功能 | 2026.11.03-custom.1 ~ custom.3 |
 | `2026.11.02-custom.31` | 2026-11-02 | 服务端安装合成一条任务、镜像自建装 Forge/NeoForge、Java 自动下载、T-01~T-11 实机验收 | custom.1 ~ custom.31 |
 | `2026.11.01-custom.22` | 2026-11-01 | 服务端进程托管、RCON 自动接管、RCON 密码默认用完即清 | custom.17 ~ custom.22 |
 | `3` | 2026-11-01 | 服务端管理员勾选、实时控制台、远程 RCON、美西螈导入、外置登录入口 | custom.41 ~ custom.16 |
