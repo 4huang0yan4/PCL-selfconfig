@@ -1,0 +1,11 @@
+{
+	"__Author__": "PCL-拾光启动器",
+	"Title": "服务器使用方法",
+	"Description": "本机服务端从哪来、怎么开、server.properties 怎么改、白名单与管理员、内存与 Java、端口防火墙、备份、关服接管、常见报错",
+	"Types": [
+		"指南"
+	],
+	"Keywords": "服务器 服务端 开服 server 开服教程 server.properties 白名单 whitelist op 管理员 端口 防火墙 内存 Java eula 备份 回档 崩溃 模组服 插件服 paper forge",
+	"ShowInPublic": true,
+	"ShowInSnapshot": true
+}

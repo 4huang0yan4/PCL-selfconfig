@@ -10,6 +10,7 @@
 
 | tag | 日期 | 一句话内容 | 包含版本 |
 |---|---|---|---|
+| `PCL-selfconfig-custom.3` | 2026-11-03 | 联机页拆三卡（加入/本机/远程）、状态徽标与关服自检、局域网/跨网二选一、接管条；新增《服务器使用方法》与重写《联机使用方法》两篇指南，帮助页常驻入口；修复换帮助包不生效 | 2026.11.03-custom.7 |
 | `PCL-selfconfig-custom.2` | 2026-11-03 | 自动更新可用：查本仓库 Release、比对构建号、下载 zip 替换 exe 重启；发布版默认开启 | 2026.11.03-custom.4 |
 | `PCL-selfconfig-custom.1` | 2026-11-03 | 首个公开版：改名 PCL 自配版、固定龙猫蓝、删主题预设、README 重写、服务端/联机/导出等功能 | 2026.11.03-custom.1 ~ custom.3 |
 | `2026.11.02-custom.31` | 2026-11-02 | 服务端安装合成一条任务、镜像自建装 Forge/NeoForge、Java 自动下载、T-01~T-11 实机验收 | custom.1 ~ custom.31 |
@@ -17,6 +18,40 @@
 | `3` | 2026-11-01 | 服务端管理员勾选、实时控制台、远程 RCON、美西螈导入、外置登录入口 | custom.41 ~ custom.16 |
 | `2` | 2026-10-31 | 服务端下载与联机页服务端管理（分组列表、加载器安装、白名单、已装服务端） | custom.11 ~ custom.40 |
 | `1` | 2026-10-31 | 新增本分支自动更新模块（默认关闭） | custom.1 ~ custom.10 |
+
+## 2026.11.03-custom.7（联机页重做 + 开服/联机指南）
+
+**联机页拆成三张卡**
+
+- `CardServerJoin` / `CardServerLocal` / `CardServerRemote`：加入服务器、本机开服、远程服务器各自独立；`ComboCardOrder` 提供六种上下排列，默认 加入 → 本机 → 远程。
+- 每张卡标题旁加状态徽标：灰=未运行、绿=运行中、黄=启动中/关闭中、红=出错。细节行（进程名、RCON 状态）与徽标文本重复时自动收起，避免「未运行」念两遍。
+- 移除旧版联机页两处折叠控件（远程、跨网），地址与选项一律展开。
+
+**本机开服**
+
+- `CheckNetLan` / `CheckNetCross` 二选一：局域网模式列出本机内网地址并支持复制；跨网模式展开本地地址、对外地址（穿透隧道给的公网地址）。
+- 跨网可选「开服前自动拉起联机工具」与「与联机方案共用同一支工具」（`LinkServerNetToolSync`，关掉后 `LinkServerNetToolPath` 独立生效）。`ModCustom` 的 `LinkTool*` 全部改为 `…At(Path)` 重载，原属性/方法委托过去，判定与启动流程只留一份实现。
+- 「关闭服务器」：RCON `stop` → 等 15 秒 → 强杀；状态走「关闭中」再变「未运行」。进程退出监听前置 + `Try/Finally` + 2 秒 `DispatcherTimer` 自检三层兜底，避免事件丢失后卡在「关闭中」。
+- 启动器重启后的接管条（`PanTakeover`）：重新接管 / 关闭后台服务端；`StopLeftoverServer()` 与正常关服复用同一条路径。
+- 远程 RCON 与本机接管拆成两条通道（`Rcon` / `RconLocal`）：远程地址密码只归远程卡，本机接管直读本机 `server.properties` 连 `127.0.0.1`；老版本误写进远程地址的 `127.0.0.1` 由 `LinkRconHostMigrated` 一次性清掉。
+
+**帮助**
+
+- 新增《服务器使用方法》（14 张卡）：服务端三种来源、本机卡每个按钮、`server.properties` 四项、游戏规则、白名单与 OP、控制台、内存与 Java、端口与防火墙、备份回档、关服接管、报错对照、模组服与插件服。
+- 重写《联机使用方法》：按界面真实顺序（陶瓦联机 → 联机方案 → 加入服务器 → 本机 → 远程）逐块讲，含樱花穿透从零开始、官方密钥申请、不用工具的几种连法、连不上排查十条。
+- 「更多 → 帮助」页面顶部新增常驻卡片「常用指南（本版补写）」，两个按钮直达上述两篇；指南分类里这两篇排在最前；「帮助」行右侧另有一个图标入口（悬停显示）。
+
+**帮助更新机制（两个隐藏 bug）**
+
+- `HelpTryExtract` 原来只按 `VersionCode` 判断是否重解压，而它是常量；改为比对缓存 `Help.zip` 的大小 + 最后写入时间，并把 `ExtractResources` 提到判断之外——内容一变必定重解压。
+- `Resources.resx` 以 `ResXFileRef` 引用 `Help.zip`，MSBuild 不跟踪被引用文件，换包后 `PCL.Resources.resources` 不重建，新帮助根本进不了 exe。`tools/help-pack.py` 打包后自动刷新 resx 时间戳。
+- `PageOtherHelp.EnterHelpPage` 支持相对路径（`指南/xxx.json`），并可从已加载条目按路径结尾反查；找不到时左下角提示，不再抛 Invoke 异常。
+
+**产物**
+
+- 本地构建号 `2026.11.03-custom.7`，exe sha256 `5addc2b85eed13c6978cd9f3ff10733bc4c4139af0b8ed5f2f84be02851780e5`。
+- `PCL-selfconfig-custom.3.zip`，2,773,504 B，sha256 `8ae7d5b3a5e3305207c79533d65f8a97dd0ade894b2407d2834f29dfb2d30ca6`。
+- 发布版不含 `ThemeApplyPreset` / `EnsureCustomTheme`，配色仍固定龙猫蓝；`SystemSelfUpdate` 保持默认开启。
 
 ## 2026.11.03-custom.4（自动更新可用）
 

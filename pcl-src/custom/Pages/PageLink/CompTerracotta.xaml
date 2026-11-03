@@ -61,8 +61,8 @@
             <WrapPanel Margin="0,4,0,0">
                 <local:MyTextButton Text="»  Terracotta 项目主页 / 下载" FontSize="12" Margin="0,0,18,2"
                                     local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/burningtnt/Terracotta/releases" />
-                <local:MyTextButton Text="»  联机常见问题（图文）" FontSize="12" Margin="0,0,18,2"
-                                    local:CustomEventService.EventType="打开帮助" local:CustomEventService.EventData="指南\联机使用方法.json" />
+                <local:MyTextButton Text="»  联机与开服完整指南" FontSize="12" Margin="0,0,18,2"
+                                    local:CustomEventService.EventType="打开帮助" local:CustomEventService.EventData="指南/联机使用方法.json" />
             </WrapPanel>
         </StackPanel>
     </local:MyCard>

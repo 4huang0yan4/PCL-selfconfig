@@ -118,8 +118,20 @@
         End Select
         Hint("正在刷新……", Log:=False)
     End Sub
+    '「帮助」右侧的快捷按钮：直接落到服务器指南详情页，省掉「进帮助 → 找指南卡 → 翻条目」三步。
+    '退回时按帮助详情的正常返回路径回到帮助列表，不额外压栈。
+    Private Sub OpenServerGuide(sender As Object, e As EventArgs)
+        Try
+            PageOtherHelp.EnterHelpPage("指南/服务器使用方法.json")
+        Catch ex As Exception
+            Logger.Error(ex, "打开服务器指南失败")
+            Hint("打不开服务器指南，请到 更多 → 帮助 → 指南 里找「服务器使用方法」", HintType.Red)
+        End Try
+    End Sub
+
     Public Shared Sub RefreshHelp()
         Settings.Set("SystemHelpVersion", 0) '强制重新解压文件
+        Settings.Set("SystemHelpStamp", "") '清掉 zip 指纹，确保解压判断必定成立
         FrmOtherHelp.PageLoaderRestart()
         FrmOtherHelp.SearchBox.Text = ""
     End Sub

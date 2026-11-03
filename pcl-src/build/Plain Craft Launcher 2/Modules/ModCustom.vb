@@ -103,7 +103,7 @@ Friend Module ModCustom
                                     "检查更新", "打开页面", "取消") = 1 Then OpenWebsite(UpstreamTagPage)
                     End Sub)
                 Else
-                    RunInUi(Sub() MyMsgBox($"当前已是最新的上游版本（{Latest}）。{vbCrLf}本分支为本地自用版，不提供自动更新。", "检查更新"))
+                    RunInUi(Sub() MyMsgBox($"当前已是最新的上游版本（{Latest}）。{vbCrLf}本分支为第三方分支，不提供自动更新。", "检查更新"))
                 End If
             Catch ex As Exception
                 Logger.Error(ex, "检查上游更新失败")
@@ -668,15 +668,29 @@ Friend Module ModCustom
     ''' <summary>本地程序是否存在（配置了路径且文件还在）。</summary>
     Friend ReadOnly Property LinkToolIsInstalled As Boolean
         Get
-            Dim P As String = LinkToolPath
-            Return P <> "" AndAlso IO.File.Exists(P)
+            Return LinkToolIsInstalledAt(LinkToolPath)
         End Get
     End Property
 
+    ''' <summary>
+    ''' 指定路径的程序是否可用（写了路径且文件还在）。
+    ''' 「跨网运行」面板可以用一支和「联机方案」不同的工具，这一类判断都得能对着任意路径算，
+    ''' 所以统一收到带参数的重载里，原属性/方法只是拿自己那份路径转一手 —— 判定逻辑只有一份。
+    ''' </summary>
+    Friend Function LinkToolIsInstalledAt(Path As String) As Boolean
+        Dim P As String = If(Path, "").Trim()
+        Return P <> "" AndAlso IO.File.Exists(P)
+    End Function
+
     ''' <summary>联机工具现在是不是已经开着（按 exe 名匹配进程）。</summary>
     Friend Function LinkToolRunning() As Boolean
+        Return LinkToolRunningAt(LinkToolPath)
+    End Function
+
+    ''' <summary>指定路径的程序现在是不是已经开着（按 exe 名匹配进程）。</summary>
+    Friend Function LinkToolRunningAt(Path As String) As Boolean
         Try
-            Dim P As String = LinkToolPath
+            Dim P As String = If(Path, "").Trim()
             If P = "" Then Return False
             Dim ExeName As String = IO.Path.GetFileNameWithoutExtension(P)
             If ExeName = "" Then Return False
@@ -707,22 +721,32 @@ Friend Module ModCustom
     ''' 返回一句给用户看的提示。
     ''' </summary>
     Friend Function LinkToolLaunch() As String
-        Dim P As String = LinkToolPath
+        Return LinkToolLaunchAt(LinkToolPath, LinkToolDisplayName, LinkToolUrl)
+    End Function
+
+    ''' <summary>
+    ''' 启动指定的联机工具：有本地程序就启动它（已在运行只提示），没有或路径失效就用浏览器打开 FallbackUrl。
+    ''' 「跨网运行」面板可以指定自己的工具，靠的就是这套带参数的版本 —— 启动流程只留一份实现。
+    ''' </summary>
+    Friend Function LinkToolLaunchAt(Path As String, DisplayName As String, Optional FallbackUrl As String = "") As String
+        Dim P As String = If(Path, "").Trim()
+        Dim N As String = If(If(DisplayName, "").Trim() = "", LinkNoneText, DisplayName.Trim())
+        Dim Url As String = If(If(FallbackUrl, "").Trim() = "", DefaultLinkUrl, FallbackUrl.Trim())
         If P <> "" AndAlso Not IO.File.Exists(P) Then
             '配置过但文件没了，退回打开地址
-            OpenWebsite(LinkToolUrl)
-            Return $"找不到「{LinkToolDisplayName}」的程序（{P}），已打开它的下载页。重新选一下程序路径就好。"
+            OpenWebsite(Url)
+            Return $"找不到「{N}」的程序（{P}），已打开它的下载页。重新选一下程序路径就好。"
         End If
         If P = "" Then
-            OpenWebsite(LinkToolUrl)
-            Return $"还没指定联机工具，已用浏览器打开樱花穿透的下载页；装好后在「程序路径」里选一下 exe，以后就能一键启动。"
+            OpenWebsite(Url)
+            Return $"还没指定联机工具，已用浏览器打开穿透工具的下载页；装好后在「程序路径」里选一下 exe，以后就能一键启动。"
         End If
-        If LinkToolRunning() Then Return $"「{LinkToolDisplayName}」已经在运行了，直接去它里面创建或加入房间就行。"
+        If LinkToolRunningAt(P) Then Return $"「{N}」已经在运行了，直接去它里面创建或加入房间就行。"
         Process.Start(New ProcessStartInfo(P) With {
             .UseShellExecute = True,
             .WorkingDirectory = IO.Path.GetDirectoryName(P)
         })
-        Return $"已启动「{LinkToolDisplayName}」，接下来在它里面创建或加入房间。"
+        Return $"已启动「{N}」，接下来在它里面创建或加入房间。"
     End Function
 
     ''' <summary>联机页 / 设置页共用的状态文案。</summary>
@@ -734,6 +758,17 @@ Friend Module ModCustom
             Return $"当前：{LinkToolDisplayName}（{LinkToolPath}{If(LinkToolRunning(), "，正在运行", "")}）"
         End Get
     End Property
+
+    ''' <summary>针对任意一支工具生成同样的状态文案（「跨网运行」用独立工具时调它）。</summary>
+    Friend Function LinkToolStatusTextAt(Path As String, ToolName As String) As String
+        Dim P As String = If(Path, "").Trim()
+        Dim N As String = If(ToolName, "").Trim()
+        If P = "" AndAlso N = "" Then Return "当前：未选择（点「选择」指定本地程序；直接点「启动」会打开穿透工具的下载页）"
+        Dim Disp As String = If(N = "", IO.Path.GetFileNameWithoutExtension(P), N)
+        If P = "" Then Return $"当前：{Disp}（未指定本地程序）"
+        If Not IO.File.Exists(P) Then Return $"当前：{Disp}（程序路径无效：{P}）"
+        Return $"当前：{Disp}（{P}{If(LinkToolRunningAt(P), "，正在运行", "")}）"
+    End Function
 
 ''' <summary>启动游戏时是否自动拉起联机工具（默认关闭）。</summary>
     Friend Property LinkAutoLaunchEnabled As Boolean
@@ -835,7 +870,7 @@ Friend Module ModCustom
 
     ' ── 位置与状态 ────────────────────────────────────────────────────────────
 
-    ''' <summary>陶瓦程序目录，跟其它自用数据一起放在 PCL 目录下。</summary>
+    ''' <summary>陶瓦程序目录，跟其它本地数据一起放在 PCL 目录下。</summary>
     Friend ReadOnly Property TcDir As String
         Get
             Return PathPure.Value & "Terracotta\"
@@ -1815,7 +1850,7 @@ Friend Module ModCustom
             For Each Name As String In Duplicates
                 System.Environment.SetEnvironmentVariable(Name, Nothing)
             Next
-            Logger.Info($"[自用修复] 已移除 {Duplicates.Count} 个大小写重复的环境变量：{String.Join(", ", Duplicates)}")
+            Logger.Info($"[本地修复] 已移除 {Duplicates.Count} 个大小写重复的环境变量：{String.Join(", ", Duplicates)}")
         Catch ex As Exception
             Logger.Error(ex, "FixDuplicateEnvironmentVariables 失败（已忽略，不影响继续启动）")
         End Try
@@ -1823,7 +1858,7 @@ Friend Module ModCustom
 
 #End Region
 
-    ' ── 传输协议（自用分支，2026-10-29）────────────────────────────────────
+    ' ── 传输协议（本分支，2026-10-29）────────────────────────────────────
     ' 是否允许旧版 TLS（1.0 / 1.1）。默认关闭；开启会在设置页二次确认。
     Friend ReadOnly Property LegacyTlsEnabled As Boolean
         Get

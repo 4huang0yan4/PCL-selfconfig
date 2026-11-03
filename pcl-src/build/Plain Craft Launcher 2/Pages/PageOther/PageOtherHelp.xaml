@@ -8,6 +8,19 @@
         <local:MyScrollViewer Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" x:Name="PanBack">
             <StackPanel x:Name="PanMain" Margin="25,25,25,10" Grid.IsSharedSizeScope="True">
                 <local:MySearchBox Margin="0,0,0,15" HintText="搜索帮助" x:Name="SearchBox" />
+                <!-- 自用分支：置顶的常用指南，一进帮助页就能看见，不用在下面的列表里翻 -->
+                <local:MyCard x:Name="CardQuickGuide" VerticalAlignment="Top" Margin="0,0,0,15" Title="常用指南（本版补写）">
+                    <StackPanel Margin="20,40,18,18">
+                        <TextBlock Opacity="0.65" FontSize="13" LineHeight="18" TextWrapping="Wrap"
+                                   Text="开服和联机的完整流程都在下面这两篇里。点按钮直接进详情页，看完点左上角返回回到这个列表。" />
+                        <WrapPanel Margin="0,12,0,0">
+                            <local:MyButton x:Name="BtnQuickServer" Text="服务器使用方法" Height="32" MinWidth="150" Padding="13,0" Margin="0,0,12,0"
+                                            ToolTip="服务端从哪来、server.properties、游戏规则、白名单与 OP、控制台、内存与 Java、端口防火墙、备份、关服接管、常见报错" />
+                            <local:MyButton x:Name="BtnQuickNet" Text="联机使用方法" Height="32" MinWidth="150" Padding="13,0" Margin="0,0,12,0"
+                                            ToolTip="陶瓦联机、第三方工具、加入服务器、局域网与跨网穿透、官方密钥、不用工具的连法、远程 RCON" />
+                        </WrapPanel>
+                    </StackPanel>
+                </local:MyCard>
                 <Grid>
                     <local:MyCard x:Name="PanSearch" Visibility="Collapsed" VerticalAlignment="Top" Opacity="0" Margin="0,0,0,15" Title=" " MinHeight="40">
                         <StackPanel Margin="20,40,18,18" Name="PanSearchList" VerticalAlignment="Top" />

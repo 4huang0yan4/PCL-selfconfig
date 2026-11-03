@@ -1,54 +1,310 @@
-<local:MyCard Title="为什么联机页没有「创建房间 / 加入房间」？" CanSwap="True" IsSwapped="True">
+<local:MyCard Title="这篇讲什么：页面从上到下一共五块，别找错地方" CanSwap="True" IsSwapped="True">
     <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,6" LineHeight="17" TextWrapping="Wrap"
+                   Text="联机页从上到下是五块，顺序就是下面这个，跟这篇的卡片顺序一致：" />
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="PCL 官方联机需要向官方服务器请求房间配置，并依赖官方与社区提供的 EasyTier 中转节点。开源版里这部分代码被删空了，本地改不出来，所以本版本改为接入第三方联机工具。" />
+                   Text="1. 陶瓦联机（推荐）—— 页面上第一块。点两下就能连，不用注册、不用配隧道。只想跟朋友随便玩玩，用这个。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="2. 联机方案（第三方工具）—— 第二块。选一个穿透 / 组网工具的 exe，在这里一键把它拉起来。陶瓦连不通时用它。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. 加入服务器 —— 你当玩家，填别人给的地址直接进服。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="4. 本地服务器 —— 你当房主，在这台机器上开一个正经服务端，配置、名单、控制台都归它。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="5. 远程服务器（RCON）—— 管别人机器 / 云服务器上的服，发命令、关服。" />
+        <TextBlock Margin="0,8,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="前两块固定在页面顶部；后面三张是服务器卡，上下顺序可以在中间的「页面布局」里调，默认是 加入 → 本地 → 远程，调完会记住。这篇按默认顺序讲。" />
+        <TextBlock Margin="0,8,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="另外说明一句：本版本不含 PCL 官方的「创建房间 / 加入房间」。那套要走官方服务器分配房间、依赖官方与社区的 EasyTier 中转节点，开源版里那段实现是空的，补不出来。所以这里换成上面的第三方方案，功能上能覆盖，只是长相和步骤跟官方版不一样。" />
     </StackPanel>
 </local:MyCard>
 
-<local:MyCard Title="用樱花穿透怎么装（可选工具）" CanSwap="True" IsSwapped="True">
+<local:MyCard Title="第一块：陶瓦联机（推荐）—— 不用注册，也不用配隧道" CanSwap="True" IsSwapped="True">
     <StackPanel Margin="25,40,23,11">
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="1. 打开 https://www.natfrp.com/ 注册账号，并按提示完成实名认证（会收几毛钱验证费）。" />
+                   Text="原理很简单：房主在游戏里把世界「对局域网开放」，陶瓦把这个局域网端口接到它的中转上，换成一串房间码；朋友拿着房间码连过去，就等于连进了房主的局域网。" />
+        <TextBlock Margin="0,10,0,2" FontSize="15" Foreground="{DynamicResource ColorBrush3}"
+                   Text="第一次用：先把它装上" />
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="2. 打开 https://www.natfrp.com/tunnel/download 下载 SakuraLauncher 并安装。装好之后，它的启动器 exe 就是「程序路径」要指向的文件。" />
+                   Text="1. 点「安装 / 更新陶瓦」，约 8 MB，会从官方源下载并自动校验 SHA-512。装好状态行会显示可用。" />
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="3. 回到启动器的「联机」页，点「选择」挑到 SakuraLauncher 的 exe，点「确认」保存。以后直接点「启动联机工具」就能拉起它。" />
+                   Text="2. 双方都要装，而且版本必须一致（当前是 0.4.2）。版本不一致会一直连不上，还看不出原因。" />
+        <TextBlock Margin="0,10,0,2" FontSize="15" Foreground="{DynamicResource ColorBrush3}"
+                   Text="房主怎么做" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. 进游戏 → 读档进世界 → 按 Esc →「对局域网开放」→「创建局域网世界」。只开一个世界的局域网，开多个可能连错世界。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="4. 回到启动器点「创建房间」（顺序反了会一直停在「等待游戏开启局域网」，这时回游戏里开一下局域网就行）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="5. 点「复制房间码」发给朋友。码形如 U/XXXX-XXXX-XXXX-XXXX，大小写都行，I 和 O 会按 1 和 0 处理。" />
+        <TextBlock Margin="0,10,0,2" FontSize="15" Foreground="{DynamicResource ColorBrush3}"
+                   Text="朋友怎么做" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="6. 把房间码粘到「房间码」那一格，点「加入」，状态行会显示已连上。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="7. 进游戏 →「多人游戏」→ 列表里会出现一条「陶瓦联机大厅」，双击就进房。不用填任何地址。" />
+        <TextBlock Margin="0,10,0,2" FontSize="15" Foreground="{DynamicResource ColorBrush3}"
+                   Text="「更多」里那几个开关" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 复制时自动检测可用的内容（默认勾上）—— 优先复制房间码，拿不到才改用直连地址。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 「复制」改为复制直连地址 —— 平时用不到。只有「陶瓦联机大厅」那条双击进不去时，才用「直接连接」粘这个地址兜底。注意它是游客本机的回环地址（127.0.0.1:端口），只在游客那边有效，房主没有。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 删除陶瓦 —— 结束进程并删掉 PCL\Terracotta 下的程序，会二次确认，删完可以重新装。想彻底清掉才用它。" />
+        <TextBlock Margin="0,8,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="什么时候别用它：跨网络、而且有一方 NAT 很严格（学校、公司、部分宽带）时，陶瓦可能怎么都连不通 —— 这是它的固有短板，不是设置错了。这种情况往下走，用第二块的穿透工具，或者看「外网朋友要连」那张卡。" />
+        <TextBlock Margin="0,4,0,0" LineHeight="17" TextWrapping="Wrap" Opacity="0.6" FontSize="11"
+                   Text="陶瓦官方接入名单里，HMCL、FCL、ZL2、MoLaunch 等启动器可以直接互加（HMCL 已实测）。PCL CE 走协议互通，同一局域网能连，跨网受限。" />
     </StackPanel>
 </local:MyCard>
 
-<local:MyCard Title="具体怎么联机（樱花穿透）" CanSwap="True" IsSwapped="True">
+<local:MyCard Title="第二块：联机方案（第三方工具）—— 在启动器里一键拉起穿透工具" CanSwap="True" IsSwapped="True">
     <StackPanel Margin="25,40,23,11">
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="1. 房主先开游戏、进存档，按 Esc →「对局域网开放」，记下游戏给出的端口号（一般是 5 位数字）。" />
+                   Text="这一块不负责开服，它只做一件事：记住你要用的穿透 / 组网工具在哪，然后一键把它启动起来，省得每次去桌面翻图标。" />
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="2. 在樱花穿透里新建隧道：类型选 TCP，本地 IP 填 127.0.0.1，本地端口填上一步那个端口（没改就是 25565）。" />
+                   Text="1. 点「选择」，指到工具的 exe（比如 SakuraLauncher.exe）。选完即时保存，上面「程序名称」会自动填好。" />
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="3. 启动隧道，切到「日志」页，会看到一行形如 frp-xxx.com:12345 的地址——这就是给朋友用的连接地址（不用管前面那些符号）。" />
+                   Text="2. 点「启动」。还没选程序时，这个按钮会直接打开樱花穿透的下载页 —— 等于给了个入口，不是坏了。" />
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="4. 朋友在游戏里「多人游戏 → 直接连接」，把 frp-xxx.com:12345 粘进去就能进。" />
+                   Text="3. 勾上「启动游戏时自动启动联机工具」，之后从主页点「启动游戏」会顺便把工具拉起来（已经在跑就跳过）。默认不勾。" />
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="5. 房主的游戏和樱花穿透都必须一直开着，关掉任何一个都会断开。" />
+                   Text="4. 想换工具点「重置」清空两行，再重新选。「更多联机工具」那一排名字点一下就是官网 / 下载页：樱花、Radmin VPN、ZeroTier、EasyTier。" />
+        <TextBlock Margin="0,10,0,2" FontSize="15" Foreground="{DynamicResource ColorBrush3}"
+                   Text="跟本地卡的「跨网运行」是什么关系" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="默认是同一支程序：在这里选的工具，本地卡「跨网运行」那一栏会跟着变；反过来也一样，在那边选这边也变。想分开配（比如陶瓦这条用樱花、开服用另一支），到本地卡的跨网栏取消「与「联机方案」使用同一个工具」，就能各指各的。" />
+        <TextBlock Margin="0,8,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="区别在于：这一块只拉起工具，不管服务端；本地卡那边是把「服务端 + 工具」串起来，开服时顺手把工具也拉起来。自己开服就用本地卡，别在这边重复配。" />
     </StackPanel>
 </local:MyCard>
 
-<local:MyCard Title="连不上先查这几项" CanSwap="True" IsSwapped="True">
+<local:MyCard Title="第三块：加入服务器 —— 填个地址就进" CanSwap="True" IsSwapped="True">
     <StackPanel Margin="25,40,23,11">
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="· 隧道本地端口和游戏里「对局域网开放」的端口不一致——最常见的原因。" />
+                   Text="1. 先在主页选中一个版本（不选版本点加入会提示没版本）。" />
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="· 隧道没启动，或启动后没看到「发现 Minecraft 局域网游戏」那提示。" />
+                   Text="2. 「服务器地址」填对方给的地址：域名或 IP 都行，带端口写 host:port，不带端口一律按 25565。不要带 http:// 或 https://，冒号要用半角英文冒号。" />
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="· 朋友没有正版账号：需要房主在「对局域网开放」时把在线模式关掉，或者装 EasyLAN / Lan Server Properties 这类模组来改设置。" />
+                   Text="3. 点「加入服务器」，会保存地址并立即启动游戏直连。" />
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="· 换了存档或重开游戏，端口可能变，隧道里要跟着改。" />
+                   Text="4. 想每次都进这台服：勾上「启动游戏时默认进入此服务器」，之后从主页点「启动游戏」也会自动连过去。不想了就把勾去掉。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="5. 「备注名称」只用于页面上显示，随便写；「清空」会把地址、备注、默认进入的勾一起去掉，回到没填过的状态。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="6. 「加入时用」两种登录：默认「跟随启动页」，启动页用离线这里就是离线；取消「跟随启动页」后才能给这台服单独指定。离线号只能进离线服，正版服要选「微软正版登录」。" />
+        <TextBlock Margin="0,8,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="IPv6 地址要加方括号，写成 [240e:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx]:25565，少一个括号就连不上。进不去先看这篇最后的排查卡。" />
     </StackPanel>
 </local:MyCard>
 
-<local:MyCard Title="不想用樱花穿透的话" CanSwap="True" IsSwapped="True">
+<local:MyCard Title="第四块 · 第一步：在本机开服（本地服务器）" CanSwap="True" IsSwapped="True">
     <StackPanel Margin="25,40,23,11">
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="在「联机」页把工具名称和下载地址改掉就行，比如陶瓦联机（Terracotta，P2P 房间式，不需要实名）、Radmin VPN、ZeroTier。三行都留空会回到默认的樱花穿透。" />
+                   Text="1. 先有服务端：在「下载 → 服务器」里下载一个（原版选 Vanilla / Paper，模组服选 NeoForge / Forge）；已经有 server.jar 的，点卡片里的「添加已有」指到那个目录（目录里要有 server.jar / fabric-server-launch.jar / run.bat 之一）。" />
         <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
-                   Text="「程序路径」是可选的：不填就只能点「打开下载页」，填了才能一键启动。" />
+                   Text="2. 「已装服务端」下拉里选中它；下拉是空的就点旁边的「刷新」。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. 端口默认 25565，一般不用改。改了就要记住，朋友填地址时得带上这个端口。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="4. 运行方式二选一：同一路由器下玩选「局域网运行」；外网朋友要连选「跨网运行」（见后面那两张卡）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="5. 点「开服」。标题右边的徽标会从灰「未运行」变成黄「启动中」，第一次要生成世界，可能要等一两分钟；控制台出现 Done 就是好了，徽标转绿「运行中」。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="6. 下面的「服务端控制台」可以直接敲命令，不用带斜杠：list 看在线玩家、op 玩家名 给管理员、say 你好 发公告、stop 关服。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="7. 「玩家名单」勾上就是管理员，取消勾选变回普通玩家。「启用白名单」勾上后，只有名单里的人能进（改的是 server.properties 的 white-list）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="8. 关服点标题旁或接管条上的「关闭服务器」：先发 stop 让服务端存盘，等它自己退；徽标会显示「关闭中」，退了才变「未运行」。等满 15 秒还没退就自动强杀（接管状态下是 20 秒），不会一直挂着。" />
+        <TextBlock Margin="0,8,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="两个默认值要知道：「正版验证」默认关，离线客户端也能进；开了就只放正版账号进来，离线号会提示 Invalid session。「关闭启动器时一并关掉本机服务端」默认不勾 —— 关启动器后服还在跑，朋友不会掉线，下次打开启动器会自动接管（见后面那张卡）。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="同一路由器 / 同一 Wi-Fi：直接填内网地址" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="这是最省事的一种，不用装任何工具，也不用碰陶瓦和穿透。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="1. 房主照上一张开好服，运行方式选「局域网运行」。本地卡里会显示本机地址，点「刷新」可以重查，点「复制」直接拿地址。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="2. 不想用卡片上的地址也行：按 Win+R 输入 cmd 回车，敲 ipconfig，找到「IPv4 地址」，形如 192.168.1.23。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. 朋友在「加入服务器」卡里填 192.168.1.23:25565（前半段换成房主那个地址，端口换成开服时用的），点「加入服务器」。或者在游戏里「多人游戏 → 直接连接」填同样的地址。" />
+        <TextBlock Margin="0,8,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="限制：只在同一个路由器下有效。换了网络、或者路由器重启后 DHCP 重新分配，地址可能会变，要重新查一次。第一次连的时候 Windows 防火墙会弹窗，记得勾上「专用网络」并允许；当时点了取消的话，到「Windows Defender 防火墙 → 允许应用通过防火墙」里把 java 勾上。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="外网朋友要连：勾「跨网运行」，地址不用折叠看" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="勾上「跨网运行」，下面会直接展开一栏（不再折叠，本地地址、外地地址、自动启动都在明面上）。它的意思是：先用穿透 / 组网工具把本机端口暴露到公网，再把工具给的那个地址发给朋友。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="1. 「联机工具」默认和上面第二块「联机方案（第三方工具）」是同一支程序 —— 在哪边选都一样。想分开配（比如联机用陶瓦、穿透用樱花），把「与「联机方案」使用同一个工具」取消勾选，这边就能单独指一个 exe。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="2. 点「启动」把工具拉起来。工具里新建隧道：类型 TCP、本地 IP 127.0.0.1、本地端口填服务端端口（默认 25565）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. 启动隧道，工具会给一个对外地址，形如 frp-xxx.com:12345。把它粘到「外地地址」那一格存着，以后点「复制」就能直接发给朋友。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="4. 勾上「开服后自动启动联机工具」，之后每次点「开服」都会先把工具拉起来（已经在跑就跳过），省得忘了开、朋友在外面白等。" />
+        <TextBlock Margin="0,8,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="要提醒的是：这条链路里房主的游戏 / 服务端和工具都得一直开着，关任何一个都会断。另外这一栏的「本地地址」只是给同屋的人用的备用地址，外网的人填了没用。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="樱花穿透（SakuraFrp）从零开始" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="1. 打开 https://www.natfrp.com/ 用手机号注册，按提示做实名认证（免费额度需要实名，认证会收几毛钱验证费）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="2. 打开 https://www.natfrp.com/tunnel/download 下载 SakuraLauncher 并安装，用刚注册的账号登录。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. 回到启动器的联机页 →「跨网运行」→ 点「选择」，指到 SakuraLauncher.exe（一般在安装目录下，名字就叫 SakuraLauncher.exe）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="4. 点「启动」，在 SakuraLauncher 的「隧道」页新建隧道：类型选 TCP，本地 IP 填 127.0.0.1，本地端口填服务端端口（默认 25565），节点挑一个延迟低的。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="5. 启动隧道，切到「日志」页，找到形如 frp-xxx.com:12345 的那一行 —— 这就是给朋友用的连接地址。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="6. 朋友在「加入服务器」卡里填这个地址，或者游戏里「多人游戏 → 直接连接」粘进去，就能进。" />
+        <TextBlock Margin="0,8,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="免费账号的限制（以官网当前说明为准）：带宽 10 Mbps、隧道 2 条、每月 5 GiB 流量。几个人一起玩够用，人多或者长时间挂机容易跑满，跑满当月要等下个月重置或者升级套餐。" />
+        <TextBlock Margin="0,4,0,0" LineHeight="17" TextWrapping="Wrap" Opacity="0.6" FontSize="11"
+                   Text="用图形客户端登录账号就够了，不需要手工填密钥 —— 下一张卡讲的是「什么时候才真的需要密钥」。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="官方密钥（访问密钥 Access Token）怎么申请" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,6" LineHeight="17" TextWrapping="Wrap"
+                   Text="先说清楚它是什么：SakuraFrp 的「访问密钥」是一串等同于账号密码的凭据，frpc 客户端靠它证明「我是这个账号」。它不是 Minecraft 的东西，也不是启动器要的，是穿透服务自己的。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="什么时候需要它：用 SakuraLauncher 图形客户端时，登录账号就够了，一般不用手工填密钥；改用官方 frpc 命令行、自己写配置文件、或者第三方 FRP 面板时，才需要密钥。所以上面那套流程走通了，这张卡可以先跳过。" />
+        <TextBlock Margin="0,10,0,2" FontSize="15" Foreground="{DynamicResource ColorBrush3}"
+                   Text="申请步骤" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="1. 打开 https://www.natfrp.com/ 并登录（没账号先注册、实名认证）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="2. 进「用户中心」。找不到就在右上角头像的下拉菜单里找「访问密钥」。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. 点「新建访问密钥」，起个能认出来的名字（比如 pcl-mc），确认创建。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="4. 立刻复制生成的那一串。它通常只完整显示一次，关掉页面就看不到了；忘了只能删掉重建。" />
+        <TextBlock Margin="0,0,0,10" LineHeight="17" TextWrapping="Wrap"
+                   Text="5. 填到要用它的地方：SakuraLauncher 在「设置 → 访问密钥」里粘贴；官方 frpc 写在配置的 [common] 段里，键名是 metadatas.token，同时 server_addr / server_port 填隧道页给出的那一组。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="安全上注意三点：密钥等于账号，别贴群里、别截图外发、别提交到公开仓库；一旦怀疑泄露，到同一个页面把它删掉再新建一条，旧密钥立刻失效；换了密钥要重启 frpc 或隧道才生效。" />
+        <TextBlock Margin="0,6,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="连不上时的常见原因：密钥复制时少了字符、把「隧道 ID」当成密钥、账号还没实名所以不能开免费隧道、密钥已被删除。日志里报 401 或「token 无效」，基本都是这几种。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="不用联机工具的几种连法" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,6" LineHeight="17" TextWrapping="Wrap"
+                   Text="穿透不是唯一解。判断标准只有一条：两台机器能不能互相找到对方。能，就不用工具；不能，才需要穿透或者组网。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="一、同一路由器直连 —— 填 192.168.x.x:25565，什么都不用装。只在一个路由器下有效，见上面那张卡片。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="二、IPv6 直连 —— 双方都有公网 IPv6 就能直连。房主在 cmd 里敲 ipconfig，找「IPv6 地址」（形如 240e:341:b810:2200:...）；朋友填的时候必须加方括号：[240e:341:b810:2200:xxxx:xxxx:xxxx:xxxx]:25565。前提是光猫 / 路由器放行了 IPv6 入站，Windows 防火墙也放行了 java。注意：不少宽带的 IPv6 只出不进，学校和企业网络常直接封掉，所以这条最看运气。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="三、公网 IPv4 + 路由器端口映射 —— 前提是宽带给的是公网 IPv4。判断方法：cmd 里 tracert 8.8.8.8，第二跳如果是 10.x、100.64.x 或 172.16–31 开头的地址，说明你在运营商大内网（CGNAT）里，做映射没用，直接放弃这条。真是公网 IP 的话，在路由器里把 25565 转发到本机的内网地址，朋友填你的公网 IP:25565。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="四、组网工具（虚拟局域网）—— ZeroTier、Radmin VPN、EasyTier、蒲公英这类。所有人装同一款、加入同一个网络，工具会分一个虚拟 IP（形如 10.147.x.x），然后按局域网那套连：填 虚拟IP:25565。好处是不用把端口暴露到公网，也不受 CGNAT 影响；坏处是每个人都要装、都要加入同一个网络。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="五、Minecraft Realms —— 官方付费订阅，邀请即进，不用管网络。缺点是要花钱，而且只有官方支持的内容能跑。" />
+        <TextBlock Margin="0,8,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="怎么挑：一屋子人 → 局域网；外网朋友且不想折腾 → 先试陶瓦，连不通再上组网（最稳）或穿透（最省事）；不想让任何人装东西 → IPv6 或端口映射，但要先确认网络允许。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="连不上，先按这个顺序查" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 地址写法：只要 域名 或 域名:端口，不要带 http://，冒号必须是半角英文冒号，IPv6 地址要加方括号。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 端口三处要一致：服务端端口、隧道里的本地端口、朋友填的端口。换过端口最容易忘。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 服务端真的起来了吗：本地卡徽标是不是绿「运行中」，控制台最后有没有 Done。空服挂机 60 秒后会暂停（省资源），这时查状态可能没响应，不是坏了，有人进来自动恢复。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 防火墙：Windows Defender 防火墙 → 允许应用通过防火墙 → 勾上 java（专用和公用都勾）。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 白名单：提示 You are not white-listed → 把朋友加进「玩家名单」，或者取消「启用白名单」。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 正版验证：离线客户端进正版服会报登录失败 / Invalid session → 关掉「正版验证」，或者让朋友用正版账号。「加入服务器」卡里的「加入时用」也要对得上。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 版本不一致：Outdated server / Outdated client → 双方版本（含模组、含陶瓦版本）要完全一致。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 陶瓦：状态行有没有连上、双方版本是不是 0.4.2、房主是不是只开了一个世界的局域网。大厅那条进不去时，用「更多」里的直连地址兜底。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 隧道：工具里的隧道是不是运行中；重启过隧道后地址可能会变，变了要重新发给朋友。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="· 大内网：IPv4 映射怎么都不通，多半是 CGNAT，换穿透或组网。" />
+        <TextBlock Margin="0,6,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="另外，服务器那边「另一个程序已锁定文件的一部分」不是文件坏了，是同一个服务端已经有一个进程在跑（占着 session.lock）。回本地卡片点「关闭服务器」，或者到任务管理器结束那个 java，再开就行，不用删任何文件。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="关掉启动器之后，服务端还在跑吗" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="关启动器时如果本机服务端在跑，会问一次，三个按钮：让它继续跑 / 一起关掉 / 以后都按设置。选「让它继续跑」，服务端留在后台，朋友不掉线。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="下次打开启动器，本地卡片顶部会出现一条「接管」提示，写明 PID、目录和 RCON 接管结果，旁边有「关闭后台服务端」和「重新接管」两个按钮。接管之后才出现「关闭服务器」—— 这是故意的，没接上之前点它没有意义。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="这里要说清楚一个取舍：启动器重开后接不回服务端的实时输出（那条管道随着上次退出断了），但命令通道还在 —— 控制台发命令、关服都能用。改过 rcon.port 或 rcon.password 之后接管会失败，点一次「重新接管」就行。" />
+        <TextBlock Margin="0,8,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="想让关启动器时自动一起关服：勾上「关闭启动器时一并关掉本机服务端」，关的时候会先给服务端发 stop、等它存盘退出。下面还有个「关闭启动器时先询问」，勾着就每次都问一次；取消勾选就不问了、直接按上面的设置执行。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="第五块：远程服务器（RCON）—— 管别人的服" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="这张卡只管远程，跟本机开的服互不串线：本机服务端的命令和输出只在本地控制台，远程的回显只在远程控制台。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="1. 那边（云服务器 / 朋友的机器）的 server.properties 里要有 enable-rcon=true，并设好 rcon.port（默认 25575）和 rcon.password。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="2. 这里填地址、端口、密码，点「连接」。连上后徽标转绿「运行中」。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="3. 下面的命令框发命令（不用带斜杠），回显显示在远程控制台里。" />
+        <TextBlock Margin="0,0,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="4. 「关闭服务器」会发 stop，然后每秒探一次活，最多等 40 秒；通道断了才算关掉，40 秒还响应就如实报「stop 没生效」，不会谎报成功。" />
+        <TextBlock Margin="0,8,0,4" LineHeight="17" TextWrapping="Wrap"
+                   Text="密码默认用完即清、不落盘；本机服务端例外，它直接读自己目录下的 server.properties，所以重启启动器也能自动接管。远程要免输就勾「记住密码」，勾的时候会有一次风险确认 —— 那等于把管理员凭据留了一份在本机。" />
+    </StackPanel>
+</local:MyCard>
+
+<local:MyCard Title="相关入口" CanSwap="True" IsSwapped="True">
+    <StackPanel Margin="25,40,23,11">
+        <TextBlock Margin="0,0,0,8" LineHeight="17" TextWrapping="Wrap"
+                   Text="服务端本身的配置、白名单、备份、崩溃排查，看「服务器使用方法」："
+                   />
+        <WrapPanel>
+            <local:MyButton Text="服务器使用方法（完整）" Height="32" MinWidth="170" Padding="13,0" Margin="0,0,12,8"
+                            EventType="打开帮助" EventData="指南/服务器使用方法.json" />
+            <local:MyButton Text="原版游戏下载" Height="32" MinWidth="120" Padding="13,0" Margin="0,0,12,8"
+                            EventType="打开帮助" EventData="指南/原版游戏下载.json" />
+            <local:MyButton Text="微软正版登录" Height="32" MinWidth="120" Padding="13,0" Margin="0,0,12,8"
+                            EventType="打开帮助" EventData="指南/微软正版登录.json" />
+            <local:MyButton Text="模组加载器与下载源" Height="32" MinWidth="150" Padding="13,0" Margin="0,0,12,8"
+                            EventType="打开帮助" EventData="指南/模组加载器与下载源.json" />
+            <local:MyButton Text="CurseForge 密钥" Height="32" MinWidth="130" Padding="13,0" Margin="0,0,12,8"
+                            EventType="打开帮助" EventData="指南/CurseForge 密钥.json" />
+        </WrapPanel>
+        <TextBlock Margin="0,8,0,8" LineHeight="17" TextWrapping="Wrap"
+                   Text="外部链接：" />
+        <WrapPanel>
+            <local:MyButton Text="樱花穿透官网（注册）" Height="32" MinWidth="150" Padding="13,0" Margin="0,0,12,8"
+                            EventType="打开网页" EventData="https://www.natfrp.com/" />
+            <local:MyButton Text="SakuraLauncher 下载" Height="32" MinWidth="150" Padding="13,0" Margin="0,0,12,8"
+                            EventType="打开网页" EventData="https://www.natfrp.com/tunnel/download" />
+            <local:MyButton Text="陶瓦联机项目主页" Height="32" MinWidth="150" Padding="13,0" Margin="0,0,12,8"
+                            EventType="打开网页" EventData="https://github.com/burningtnt/Terracotta/releases" />
+            <local:MyButton Text="ZeroTier 下载" Height="32" MinWidth="120" Padding="13,0" Margin="0,0,12,8"
+                            EventType="打开网页" EventData="https://www.zerotier.com/download/" />
+            <local:MyButton Text="EasyTier 下载" Height="32" MinWidth="120" Padding="13,0" Margin="0,0,12,8"
+                            EventType="打开网页" EventData="https://github.com/EasyTier/EasyTier/releases" />
+        </WrapPanel>
     </StackPanel>
 </local:MyCard>

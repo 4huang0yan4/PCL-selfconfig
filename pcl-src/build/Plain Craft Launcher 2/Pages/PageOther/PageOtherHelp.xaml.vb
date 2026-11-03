@@ -6,6 +6,12 @@ Public Class PageOtherHelp
     '滚动条
     Private Sub PageOther_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
         PanBack.ScrollToHome()
+        '顶部长驻按钮用代码挂事件：XAML 里写 Click 是运行时反射绑定，委托签名对不上会直接弹「创建 Click 失败」，
+        '这里用 AddressOf 让编译器在编译期就检查，签名不对当场报错，不会拖到用户点开页面才炸。
+        RemoveHandler BtnQuickServer.Click, AddressOf OpenServerGuide
+        RemoveHandler BtnQuickNet.Click, AddressOf OpenNetGuide
+        AddHandler BtnQuickServer.Click, AddressOf OpenServerGuide
+        AddHandler BtnQuickNet.Click, AddressOf OpenNetGuide
     End Sub
     '初始化加载器信息
     Private Sub PageOther_Inited(sender As Object, e As EventArgs) Handles Me.Initialized
@@ -47,6 +53,8 @@ Public Class PageOtherHelp
                     If BuildType <> BuildTypes.Release AndAlso Not Item.ShowInSnapshot Then Continue For
                     If Item.Types.Contains(Type) Then TypeItems.Add(Item)
                 Next
+                '自用分支：指南里把本版补写的两篇提到最前面（列表顺序来自 zip 的扫描顺序，不排就会夹在中间）
+                If Type = "指南" Then TypeItems = PinGuideFirst(TypeItems)
                 '增加卡片
                 Dim NewCard As New MyCard With {.Title = Type, .Margin = New Thickness(0, 0, 0, 15)}
                 Dim NewStack As New StackPanel With {.Margin = New Thickness(20, MyCard.SwapedHeight, 18, 0), .VerticalAlignment = VerticalAlignment.Top, .RenderTransform = New TranslateTransform(0, 0)}
@@ -67,6 +75,23 @@ Public Class PageOtherHelp
     End Sub
 
     ''' <summary>
+    ''' 自用分支：把本版补写的指南排到分类最前，其余保持原顺序。
+    ''' </summary>
+    Private Shared Function PinGuideFirst(Items As List(Of HelpEntry)) As List(Of HelpEntry)
+        Dim PinnedTitles As String() = {"服务器使用方法", "联机使用方法"}
+        Dim Result As New List(Of HelpEntry)
+        For Each Title In PinnedTitles
+            For Each Item In Items
+                If Item.Title = Title AndAlso Not Result.Contains(Item) Then Result.Add(Item)
+            Next
+        Next
+        For Each Item In Items
+            If Not Result.Contains(Item) Then Result.Add(Item)
+        Next
+        Return Result
+    End Function
+
+    ''' <summary>
     ''' 帮助项目的点击事件。
     ''' </summary>
     Public Shared Sub OnItemClick(Entry As HelpEntry)
@@ -80,20 +105,50 @@ Public Class PageOtherHelp
             Logger.Error(ex, "处理帮助项目点击时发生意外错误")
         End Try
     End Sub
+
+    '自用分支：顶部长驻按钮，直接落到详情页
+    '注意：MyButton 的 Click 是自建的 MouseButtonEventArgs，不能用 EventArgs，否则 XAML 绑定报「签名不兼容」
+    Private Sub OpenServerGuide(sender As Object, e As MouseButtonEventArgs)
+        EnterHelpPage("指南/服务器使用方法.json")
+    End Sub
+    Private Sub OpenNetGuide(sender As Object, e As MouseButtonEventArgs)
+        EnterHelpPage("指南/联机使用方法.json")
+    End Sub
+
     Public Shared Sub EnterHelpPage(Location As String)
         RunInThread(
         Sub()
-            If Not HelpLoader.State = LoadState.Finished Then HelpLoader.WaitForExit(GetUuid)
-            Dim Entry As New HelpEntry(Location)
-            RunInUi(
-            Sub()
-                Dim FrmHelpDetail As New PageOtherHelpDetail
-                If FrmHelpDetail.Init(Entry) Then
-                    FrmMain.PageChange(New FormMain.PageStackData With {.Page = FormMain.PageType.HelpDetail, .Additional = {Entry, FrmHelpDetail}})
-                Else
-                    Logger.Warn("已取消进入帮助项目，这一般是由于 xaml 初始化失败，且用户在弹窗中手动放弃")
+            Try
+                If Not HelpLoader.State = LoadState.Finished Then HelpLoader.WaitForExit(GetUuid)
+                '自用分支：调用处传的是相对路径（如 "指南/服务器使用方法.json"），这里补成内置帮助目录下的绝对路径。
+                '从帮助列表点进来的情况传的本来就是绝对路径，原样使用。
+                Dim RealPath As String = Location
+                Dim RelPath As String = If(Location, "").Replace("/", "\").TrimStart("\"c)
+                If Not FileUtils.Exists(RealPath) Then RealPath = PathTemp & "Help\" & RelPath
+                '第三层兜底：从已加载的条目里按结尾反查真实路径（兼容用户放在 PCL\Help 下的自定义帮助）
+                If Not FileUtils.Exists(RealPath) AndAlso HelpLoader.Output IsNot Nothing Then
+                    Dim Hit = HelpLoader.Output.FirstOrDefault(Function(x) x.RawPath.Replace("/", "\").EndsWith(RelPath, StringComparison.OrdinalIgnoreCase))
+                    If Hit IsNot Nothing Then RealPath = Hit.RawPath
                 End If
-            End Sub)
+                If Not FileUtils.Exists(RealPath) Then
+                    Logger.Info($"未找到帮助文件：{Location}（已尝试 {RealPath}）")
+                    Hint($"没找到这篇指南：{If(Location, "")}，请到 更多 → 帮助 的列表里点开", HintType.Red)
+                    Return
+                End If
+                Dim Entry As New HelpEntry(RealPath)
+                RunInUi(
+                Sub()
+                    Dim FrmHelpDetail As New PageOtherHelpDetail
+                    If FrmHelpDetail.Init(Entry) Then
+                        FrmMain.PageChange(New FormMain.PageStackData With {.Page = FormMain.PageType.HelpDetail, .Additional = {Entry, FrmHelpDetail}})
+                    Else
+                        Logger.Warn("已取消进入帮助项目，这一般是由于 xaml 初始化失败，且用户在弹窗中手动放弃")
+                    End If
+                End Sub)
+            Catch ex As Exception
+                Logger.Error(ex, $"打开帮助失败：{Location}")
+                Hint("打开指南失败了，请到 更多 → 帮助 的列表里点开其中一篇", HintType.Red)
+            End Try
         End Sub)
     End Sub
     Public Shared Sub EnterHelpPage(Entry As HelpEntry)
@@ -125,6 +180,7 @@ Public Class PageOtherHelp
                      PanSearch.Height = 0
                      PanSearch.Visibility = Visibility.Collapsed
                      PanList.Visibility = Visibility.Visible
+                     CardQuickGuide.Visibility = Visibility.Visible
                  End Sub,, True),
                  AaOpacity(PanList, 1 - PanList.Opacity, 150, 30)
             }, "FrmOtherHelp Search Switch")
@@ -165,6 +221,8 @@ Public Class PageOtherHelp
                  AaCode(
                  Sub()
                      PanList.Visibility = Visibility.Collapsed
+                     '搜索时把顶部的常用指南收起来，把结果留在第一屏
+                     CardQuickGuide.Visibility = Visibility.Collapsed
                      PanSearch.Visibility = Visibility.Visible
                      PanSearch.TriggerForceResize()
                  End Sub,, True),

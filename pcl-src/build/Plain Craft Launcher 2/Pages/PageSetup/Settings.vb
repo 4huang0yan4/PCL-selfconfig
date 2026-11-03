@@ -1,4 +1,4 @@
-Imports System.Security.Cryptography
+﻿Imports System.Security.Cryptography
 
 Public Class Settings
 
@@ -32,6 +32,7 @@ Public Class Settings
         New Setting("SystemHighestBetaVersionReg", 0, Source:=Sources.Registry, Encrypted:=True),
         New Setting("SystemHighestAlphaVersionReg", 0, Source:=Sources.Registry, Encrypted:=True),
         New Setting("SystemHelpVersion", 0, Source:=Sources.Registry),
+        New Setting("SystemHelpStamp", "", Source:=Sources.Registry), '内置帮助包指纹，换了 Help.zip 才重解压
         New Setting("SystemDebugMode", False, Source:=Sources.Registry, OnChanged:=Sub() Logger.Instance.MinLevel = If(ModeDebug, LogLevel.Trace, LogLevel.Info)),
         New Setting("SystemDebugAnim", 9, Source:=Sources.Registry),
         New Setting("SystemDebugDelay", False, Source:=Sources.Registry),
@@ -226,9 +227,17 @@ Public Class Settings
         New Setting("LinkRconPass", "", Source:=Sources.Registry, Encrypted:=True), 'RCON 密码。**默认不存**，只有勾了「记住密码」才写
         New Setting("LinkRconRememberPass", False, Source:=Sources.Registry), '是否记住 RCON 密码（默认关：本机从 server.properties 现读，远程每次手输）
         New Setting("LinkServerKeepOnExit", True, Source:=Sources.Registry), '关闭启动器时保留本机服务端（默认保留）
+        New Setting("LinkServerExitAsk", True, Source:=Sources.Registry), '关启动器时若本机服务端在跑，是否弹窗询问
+        New Setting("LinkCardOrder", 0, Source:=Sources.Registry), '三张服务器卡片的上下顺序（0–5，对应联机页下拉的六种排列）
+        New Setting("LinkRconHostMigrated", False, Source:=Sources.Registry), '是否已把老版本写进远程地址的本机 127.0.0.1 清掉（一次性迁移）
         New Setting("LinkServerProcPid", 0), '上次启动的本机服务端 PID，用于启动器重启后检测它是否还在跑
         New Setting("LinkServerProcDir", ""), '对应的服务端目录
         New Setting("LinkServerProcTime", ""), '启动时间，只用于提示文案
+        New Setting("LinkServerNetMode", 0, Source:=Sources.Registry), '运行方式：0 局域网、1 跨网（二选一，跨网才显示联机工具那一栏）
+        New Setting("LinkServerNetAutoLaunch", False, Source:=Sources.Registry), '跨网运行时，开服前是否自动拉起联机工具（默认关）
+        New Setting("LinkServerPublicAddr", "", Source:=Sources.Registry), '对外地址（联机工具隧道给的公网地址），方便复制发给朋友
+        New Setting("LinkServerNetToolSync", True, Source:=Sources.Registry), '跨网运行是否与「联机方案」共用同一支工具（默认共用；取消后各配各的）
+        New Setting("LinkServerNetToolPath", "", Source:=Sources.Registry), '跨网运行独立使用的工具路径（只在取消共用时生效）
         New Setting("TcExePath", "", Source:=Sources.Registry),
         New Setting("TcLastRoom", "", Source:=Sources.Registry),
         New Setting("TcCopyAddr", False, Source:=Sources.Registry),

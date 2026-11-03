@@ -641,14 +641,33 @@ NextFile:
     End Sub
     ''' <summary>
     ''' 尝试解压内置帮助文件。
+    ''' 自用分支改动：上游只按 VersionCode 判断是否重解压，而它是常量，同一个版本号内换了 Help.zip，
+    ''' 老用户的临时目录永远不会刷新 —— 新写的帮助怎么都看不到（除非手动点「刷新」或清临时目录）。
+    ''' 注意不能用 VersionBaseName：它是常量 "2.99.0.0"，不含构建号，拿它当标记同样永远相等。
+    ''' 这里改用缓存里 Help.zip 自身的指纹（大小 + 最后写入时间）：zip 内容一变，指纹就变，必定重解压；
+    ''' 内容没变时 ExtractResources 不会重写文件，指纹保持不变，不会每次启动都白解压一遍。
     ''' </summary>
     Public Sub HelpTryExtract()
-        If Settings.Get(Of Integer)("SystemHelpVersion") <> VersionCode OrElse Not FileUtils.Exists(PathTemp & "Help\启动器\备份设置.xaml") Then
+        Dim ZipPath As String = PathTemp & "Cache\Help.zip"
+        '把内置资源里的 zip 同步到缓存（内部按哈希比对，内容相同就直接返回，不会重写）
+        ExtractResources(ZipPath, "Help")
+        If Not FileUtils.Exists(ZipPath) Then Return
+        Dim Stamp As String
+        Try
+            Dim Info As New IO.FileInfo(ZipPath)
+            Stamp = $"{Info.Length}_{Info.LastWriteTimeUtc.Ticks}"
+        Catch ex As Exception
+            Logger.Warn(ex, "读取内置帮助压缩包信息失败，将强制重新解压")
+            Stamp = ""
+        End Try
+        If Settings.Get(Of Integer)("SystemHelpVersion") <> VersionCode _
+           OrElse Settings.Get(Of String)("SystemHelpStamp") <> Stamp _
+           OrElse Not FileUtils.Exists(PathTemp & "Help\启动器\备份设置.xaml") Then
             DirectoryUtils.Delete(PathTemp & "Help")
-            ExtractResources(PathTemp & "Cache\Help.zip", "Help")
-            FileUtils.ExtractToDirectory(PathTemp & "Cache\Help.zip", PathTemp & "Help")
+            FileUtils.ExtractToDirectory(ZipPath, PathTemp & "Help")
             Settings.Set("SystemHelpVersion", VersionCode)
-            Logger.Info($"已解压内置帮助文件，目前状态：{FileUtils.Exists(PathTemp + "Help\启动器\备份设置.xaml")}")
+            Settings.Set("SystemHelpStamp", Stamp)
+            Logger.Info($"已解压内置帮助文件（{Stamp}），目前状态：{FileUtils.Exists(PathTemp + "Help\启动器\备份设置.xaml")}")
         End If
     End Sub
 

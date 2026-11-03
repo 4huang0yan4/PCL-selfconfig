@@ -18,21 +18,33 @@ Public Class PageLinkMain
             Return False
         End If
         Dim KeepIt As Boolean = Settings.Get(Of Boolean)("LinkServerKeepOnExit")
-        If Not Silent Then
+        Dim AskMe As Boolean = Settings.Get(Of Boolean)("LinkServerExitAsk")
+        '只有「询问」开着才弹窗。点过「以后都按设置」之后这里就是静默按 KeepIt 执行，
+        '不会因为少了一层确认就把服务端莫名关掉或莫名留着。
+        If Not Silent AndAlso AskMe Then
             Dim Choice As Integer = MyMsgBox(
                 $"本机服务端还在运行（PID {Running.Id}）。" & vbCrLf & vbCrLf &
                 "「让它继续跑」：关掉启动器后服务端仍在后台，玩家还能进；" &
-                "但启动器接管不了它的控制台，要关它得重开启动器点「关闭服务器」，或用任务管理器结束 java。" & vbCrLf & vbCrLf &
+                "下次打开启动器时，联机页的「本地服务器」会自动用 RCON 接管它的命令通道（实时输出拿不到），要关它点那里「关闭服务器」。" & vbCrLf &
                 "「一起关掉」：先给服务端发 stop，等它保存世界后退出。" & vbCrLf & vbCrLf &
-                If(KeepIt, "（当前默认：让它继续跑。可在「关闭启动器时一并关掉本机服务端」里改。）",
-                           "（当前默认：一起关掉。可在「关闭启动器时一并关掉本机服务端」里改。）"),
-                "服务端还在运行", "让它继续跑", "一起关掉")
-            If Choice = 1 Then Return False
-            If Choice = 2 Then
-                StopServerGracefully(Running)
-                Return False
-            End If
-            Return True '关掉弹窗 = 不退出
+                If(KeepIt, "当前设置：让它继续跑。",
+                           "当前设置：一起关掉。") & vbCrLf &
+                "点「以后都按设置」就不再问了，之后关启动器直接照上面这条执行；想恢复询问，去联机页把「关闭启动器时先询问」重新勾上。",
+                "服务端还在运行", "让它继续跑", "一起关掉", "以后都按设置")
+            Select Case Choice
+                Case 1
+                    Return False
+                Case 2
+                    StopServerGracefully(Running)
+                    Return False
+                Case 3
+                    Settings.Set("LinkServerExitAsk", False)
+                    If CheckServerExitAsk IsNot Nothing Then CheckServerExitAsk.SetChecked(False, False)
+                    If Not KeepIt Then StopServerGracefully(Running)
+                    Return False
+                Case Else
+                    Return True '关掉弹窗 = 不退出
+            End Select
         End If
         If Not KeepIt Then StopServerGracefully(Running)
         Return False
@@ -45,6 +57,11 @@ Public Class PageLinkMain
     Private Sub LinkToolEnter() Handles Me.PageEnter
         LinkToolRefresh()
         ServerRefresh()
+        StartStateWatch()
+    End Sub
+
+    Private Sub LinkToolLeave() Handles Me.PageExit
+        StopStateWatch()
     End Sub
 
     Private Sub LinkToolRefresh()
@@ -62,6 +79,8 @@ Public Class PageLinkMain
             AniControlEnabled -= 1
         End Try
         LabLinkStatus.Text = ModCustom.LinkToolStatusText
+        '共用模式下这边就是「同一个工具」的另一处显示，改完必须一起刷；独立模式下它不动
+        RefreshNetTool()
     End Sub
 
     Private Sub BtnLinkPick_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnLinkPick.Click
@@ -76,6 +95,7 @@ Public Class PageLinkMain
             '选完即落盘：名称与路径一起写，避免"选了却还是旧值"
             ModCustom.LinkToolSaveNamePath(NameFromFile, File)
             LabLinkStatus.Text = ModCustom.LinkToolStatusText
+            RefreshNetTool()
             Hint($"已指定「{NameFromFile}」，点「启动」即可拉起来。", HintType.Green, False)
         Catch ex As Exception
             Logger.Error(ex, "选择联机工具程序失败")
@@ -95,6 +115,7 @@ Public Class PageLinkMain
             End If
             Hint(ModCustom.LinkToolLaunch(), HintType.Green, False)
             LabLinkStatus.Text = ModCustom.LinkToolStatusText
+            RefreshNetTool()
         Catch ex As Exception
             Logger.Error(ex, "启动联机工具失败")
             Hint("启动失败：" & ex.Message, HintType.Red, False)
@@ -112,10 +133,253 @@ Public Class PageLinkMain
             AniControlEnabled -= 1
         End Try
         ModCustom.LinkToolSaveNamePath("", "")
+        RefreshNetTool()
         LabLinkStatus.Text = "已清空并生效，当前回到默认的樱花穿透。"
         Hint("已清空并生效：回到默认的樱花穿透（未指定本地程序）。", HintType.Green, False)
     End Sub
 
+
+    ' ── 运行方式：局域网 / 跨网 ─────────────────────────
+    '二选一，不是两个独立开关：局域网 = 同一路由器直连；跨网 = 先用穿透 / 组网工具把端口暴露出去。
+    '
+    '跨网那一栏的程序默认和「联机方案（第三方工具）」是同一支（LinkToolPath / LinkToolName），
+    '在任一边选，另一边都会跟着变 —— 大多数人本来也只装一个穿透工具，配两次纯属重复劳动。
+    '但确实有人「联机用陶瓦、穿透用樱花」，所以留了 CheckNetToolSync：取消后跨网单开一格
+    '（LinkServerNetToolPath），从此互不干扰。同步只是默认值，不是硬绑定。
+
+    Private _NetModeSyncing As Boolean
+
+    '''<summary>跨网这边是否与「联机方案」共用同一支工具（默认共用）。</summary>
+    Private Function NetToolSynced() As Boolean
+        Return Settings.Get(Of Boolean)("LinkServerNetToolSync")
+    End Function
+
+    '''<summary>跨网实际要用的程序路径：共用模式读联机方案那一份，独立模式读自己那一格。</summary>
+    Private Function NetToolPath() As String
+        If NetToolSynced() Then Return If(ModCustom.LinkToolPath, "").Trim()
+        Return If(Settings.Get(Of String)("LinkServerNetToolPath"), "").Trim()
+    End Function
+
+    '''<summary>跨网这支工具的名字：共用模式用联机方案存的名字，独立模式直接取文件名。</summary>
+    Private Function NetToolDisplayName() As String
+        If NetToolSynced() Then Return If(ModCustom.LinkToolName, "").Trim()
+        Dim P As String = NetToolPath()
+        Return If(P = "", "", System.IO.Path.GetFileNameWithoutExtension(P))
+    End Function
+
+    '''<summary>
+    ''' 按当前模式重画跨网工具那一格。联机方案那边一改就调它，两边永远显示同一份真相；
+    ''' 独立模式下它只认自己那格，联机方案怎么变都不动。
+    ''' </summary>
+    Private Sub RefreshNetTool()
+        If TextNetTool Is Nothing Then Return
+        _NetModeSyncing = True
+        AniControlEnabled += 1
+        Try
+            CheckNetToolSync.SetChecked(NetToolSynced(), False)
+            TextNetTool.Text = NetToolPath()
+        Catch ex As Exception
+            Logger.Warn(ex, "刷新跨网工具失败")
+        Finally
+            AniControlEnabled -= 1
+            _NetModeSyncing = False
+        End Try
+        LabNetToolState.Text = ModCustom.LinkToolStatusTextAt(NetToolPath(), NetToolDisplayName())
+    End Sub
+
+    Private Sub NetModeRefresh()
+        Try
+            Dim Mode As Integer = Settings.Get(Of Integer)("LinkServerNetMode")
+            ApplyNetMode(If(Mode = 1, 1, 0))
+            _NetModeSyncing = True
+            TextNetPublicAddr.Text = If(Settings.Get(Of String)("LinkServerPublicAddr"), "").Trim()
+            _NetModeSyncing = False
+            RefreshNetTool()
+            CheckNetAutoLaunch.SetChecked(Settings.Get(Of Boolean)("LinkServerNetAutoLaunch"), False)
+            If If(TextNetLanAddr.Text, "").Trim() = "" Then RefreshLanAddr()
+        Catch ex As Exception
+            Logger.Warn(ex, "刷新运行方式失败")
+        Finally
+            _NetModeSyncing = False
+        End Try
+    End Sub
+
+    '''<summary>按模式摆好界面：跨网才展开联机工具那一栏；切回局域网就把它收起。</summary>
+    Private Sub ApplyNetMode(Mode As Integer)
+        _NetModeSyncing = True
+        Try
+            AniControlEnabled += 1
+            CheckNetLan.SetChecked(Mode = 0, False)
+            CheckNetCross.SetChecked(Mode = 1, False)
+        Catch ex As Exception
+            Logger.Warn(ex, "设置运行方式勾选失败")
+        Finally
+            AniControlEnabled -= 1
+            _NetModeSyncing = False
+        End Try
+        If PanCrossNet IsNot Nothing Then PanCrossNet.Visibility = If(Mode = 1, Visibility.Visible, Visibility.Collapsed)
+    End Sub
+
+    Private Sub CheckNetLan_Change(sender As Object, user As Boolean) Handles CheckNetLan.Change
+        If _NetModeSyncing OrElse Not user Then Return
+        If Not CheckNetLan.Checked Then
+            '必须二选一：取消勾选等于「哪种都不是」，直接勾回来
+            ApplyNetMode(0)
+            Return
+        End If
+        Settings.Set("LinkServerNetMode", 0)
+        ApplyNetMode(0)
+        Hint("已切到局域网运行：同一 Wi-Fi / 同一路由器下的朋友用「本机 IPv4:端口」直连，不需要任何工具。", HintType.Blue, False)
+    End Sub
+
+    Private Sub CheckNetCross_Change(sender As Object, user As Boolean) Handles CheckNetCross.Change
+        If _NetModeSyncing OrElse Not user Then Return
+        If Not CheckNetCross.Checked Then
+            ApplyNetMode(1)
+            Return
+        End If
+        Settings.Set("LinkServerNetMode", 1)
+        ApplyNetMode(1)
+        Hint("已切到跨网运行：开服前先把联机工具起来，隧道指向 127.0.0.1:本机端口，再把公网地址发给朋友。", HintType.Blue, False)
+    End Sub
+
+    Private Sub CheckNetToolSync_Change(sender As Object, user As Boolean) Handles CheckNetToolSync.Change
+        If _NetModeSyncing OrElse Not user Then Return
+        Try
+            '从共用切到独立：先把现在这支拷进自己那格，不然工具会「凭空消失」，用户还得再选一次
+            If Not CheckNetToolSync.Checked AndAlso NetToolSynced() Then
+                Settings.Set("LinkServerNetToolPath", If(ModCustom.LinkToolPath, "").Trim())
+            End If
+            Settings.Set("LinkServerNetToolSync", CheckNetToolSync.Checked)
+        Catch ex As Exception
+            Logger.Warn(ex, "保存跨网工具同步设置失败")
+        End Try
+        RefreshNetTool()
+        If CheckNetToolSync.Checked Then
+            Hint("已改为与「联机方案」共用同一支工具：那边换成什么，这里就跟着换。", HintType.Blue, False)
+        Else
+            Hint("已改为单独配置：跨网这边可以自己指定一支工具，联机方案那边再怎么改也不影响这里。", HintType.Blue, False)
+        End If
+    End Sub
+
+    Private Sub CheckNetAutoLaunch_Change(sender As Object, user As Boolean) Handles CheckNetAutoLaunch.Change
+        If Not user Then Return
+        Settings.Set("LinkServerNetAutoLaunch", CheckNetAutoLaunch.Checked)
+    End Sub
+
+    Private Sub BtnNetToolPick_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnNetToolPick.Click
+        Try
+            Dim File As String = Dialogs.SelectFile("选择联机工具的程序", False, filter:={({"exe"}, "可执行程序")}).FirstOrDefault()
+            If String.IsNullOrWhiteSpace(File) Then Return
+            Dim NameFromFile As String = System.IO.Path.GetFileNameWithoutExtension(File)
+            If NetToolSynced() Then
+                '共用模式：写的就是联机方案那一份，LinkToolRefresh 里会顺手把这边也刷一遍
+                ModCustom.LinkToolSaveNamePath(NameFromFile, File)
+                LinkToolRefresh()
+                Hint($"已指定「{NameFromFile}」，点「启动」就能拉起来；上面的「联机方案」也同步换成了它。", HintType.Green, False)
+            Else
+                Settings.Set("LinkServerNetToolPath", File)
+                RefreshNetTool()
+                Hint($"已指定「{NameFromFile}」（只用于跨网运行，不影响「联机方案」），点「启动」就能拉起来。", HintType.Green, False)
+            End If
+        Catch ex As Exception
+            Logger.Error(ex, "选择联机工具程序失败")
+            Hint("选择失败：" & ex.Message, HintType.Red, False)
+        End Try
+    End Sub
+
+    Private Sub BtnNetToolStart_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnNetToolStart.Click
+        Try
+            Hint(ModCustom.LinkToolLaunchAt(NetToolPath(), NetToolDisplayName(), ModCustom.LinkToolUrl), HintType.Green, False)
+            RefreshNetTool()
+        Catch ex As Exception
+            Logger.Error(ex, "启动联机工具失败")
+            Hint("启动失败：" & ex.Message, HintType.Red, False)
+        End Try
+    End Sub
+
+    '''<summary>开服前按需拉起联机工具：跨网 + 勾了自动启动才动手，已经在跑就跳过。</summary>
+    Private Sub AutoLaunchNetToolOnServerStart()
+        Try
+            If Settings.Get(Of Integer)("LinkServerNetMode") <> 1 Then Return
+            If Not Settings.Get(Of Boolean)("LinkServerNetAutoLaunch") Then Return
+            Dim PathNow As String = NetToolPath()
+            If Not ModCustom.LinkToolIsInstalledAt(PathNow) Then
+                Hint("跨网运行要联机工具，但现在还没指定程序：在本地服务器卡片的「跨网运行」里点「选择」指一下 exe。", HintType.Red, False)
+                Return
+            End If
+            Hint(ModCustom.LinkToolLaunchAt(PathNow, NetToolDisplayName(), ModCustom.LinkToolUrl), HintType.Blue, False)
+            RefreshNetTool()
+        Catch ex As Exception
+            Logger.Warn(ex, "开服前自动启动联机工具失败")
+        End Try
+    End Sub
+
+    Private Sub RefreshLanAddr()
+        Try
+            Dim Port As String = If(TextServerPort.Text, "").Trim()
+            If Port = "" Then Port = "25565"
+            Dim IP As String = LocalIPv4()
+            TextNetLanAddr.Text = If(IP = "", $"读不到本机 IPv4（用 ipconfig 看一眼），端口 {Port}", $"{IP}:{Port}")
+        Catch ex As Exception
+            Logger.Warn(ex, "读取本机地址失败")
+        End Try
+    End Sub
+
+    '''<summary>挑一个最像「局域网地址」的 IPv4：优先 192.168 / 10.x / 172.16–31。</summary>
+    Private Function LocalIPv4() As String
+        Try
+            Dim Best As String = ""
+            For Each Addr As System.Net.IPAddress In System.Net.Dns.GetHostAddresses(System.Net.Dns.GetHostName())
+                If Addr.AddressFamily <> System.Net.Sockets.AddressFamily.InterNetwork Then Continue For
+                Dim S As String = Addr.ToString()
+                If S.StartsWith("127.") OrElse S.StartsWith("169.254.") Then Continue For
+                If S.StartsWith("192.168.") OrElse S.StartsWith("10.") Then Return S
+                If S.StartsWith("172.") Then
+                    Dim Parts As String() = S.Split("."c)
+                    Dim Second As Integer
+                    If Parts.Length = 4 AndAlso Integer.TryParse(Parts(1), Second) AndAlso Second >= 16 AndAlso Second <= 31 Then Return S
+                End If
+                If Best = "" Then Best = S
+            Next
+            Return Best
+        Catch
+            Return ""
+        End Try
+    End Function
+
+    Private Sub BtnNetLanRefresh_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnNetLanRefresh.Click
+        RefreshLanAddr()
+        Hint("已刷新本机地址：" & If(TextNetLanAddr.Text, ""), HintType.Blue, False)
+    End Sub
+
+    Private Sub BtnNetLanCopy_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnNetLanCopy.Click
+        If If(TextNetLanAddr.Text, "").Trim() = "" Then RefreshLanAddr()
+        Dim T As String = If(TextNetLanAddr.Text, "").Trim()
+        If T = "" Then Return
+        ClipboardSet(T)
+        Hint("已复制本机地址：" & T, HintType.Green, False)
+    End Sub
+
+    Private Sub BtnNetPublicCopy_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnNetPublicCopy.Click
+        Dim T As String = If(TextNetPublicAddr.Text, "").Trim()
+        If T = "" Then
+            Hint("还没填对外地址：先在联机工具里建好隧道，把它给的公网地址粘到左边这一格。", HintType.Blue, False)
+            Return
+        End If
+        ClipboardSet(T)
+        Hint("已复制对外地址：" & T & "，发给外网朋友就能连。", HintType.Green, False)
+    End Sub
+
+    Private Sub TextNetPublicAddr_LostFocus(sender As Object, e As RoutedEventArgs) Handles TextNetPublicAddr.LostFocus
+        If _NetModeSyncing Then Return
+        Try
+            Dim V As String = If(TextNetPublicAddr.Text, "").Trim()
+            If V <> If(Settings.Get(Of String)("LinkServerPublicAddr"), "").Trim() Then Settings.Set("LinkServerPublicAddr", V)
+        Catch ex As Exception
+            Logger.Warn(ex, "保存对外地址失败")
+        End Try
+    End Sub
 
     ' ── 服务器（直连）──────────────────────────────────
     '地址存 Registry 设置；「加入」走 McLaunchOptions.ServerIp 启动一次；
@@ -140,17 +404,90 @@ Public Class PageLinkMain
         ServerStatusRefresh()
         ServerConfigRefresh()
         InstalledServersRefresh()
+        NetModeRefresh()
         WhitelistRefresh()
+        MigrateLocalRconHost()
         RconRefresh()
         ServerLeftoverRefresh()
+        LocalStateRefresh()
         If CheckServerStopOnExit IsNot Nothing Then
             CheckServerStopOnExit.SetChecked(Not Settings.Get(Of Boolean)("LinkServerKeepOnExit"), False)
         End If
+        If CheckServerExitAsk IsNot Nothing Then
+            CheckServerExitAsk.SetChecked(Settings.Get(Of Boolean)("LinkServerExitAsk"), False)
+        End If
+        ApplyCardOrder()
     End Sub
 
     Private Sub CheckServerStopOnExit_Change(sender As Object, user As Boolean) Handles CheckServerStopOnExit.Change
         If Not user Then Return
         Settings.Set("LinkServerKeepOnExit", Not CheckServerStopOnExit.Checked)
+    End Sub
+
+    Private Sub CheckServerExitAsk_Change(sender As Object, user As Boolean) Handles CheckServerExitAsk.Change
+        If Not user Then Return
+        Settings.Set("LinkServerExitAsk", CheckServerExitAsk.Checked)
+    End Sub
+
+    '''<summary>
+    ''' 三张服务器卡片的上下顺序。六种排列写死成表，只改 Grid.Row，不动控件树 ——
+    ''' 换顺序时控件实例不变，事件绑定、输入中的文字、已经连着的 RCON 都不会丢。
+    ''' </summary>
+    Private Sub ApplyCardOrder()
+        If PanServerCards Is Nothing Then Return
+        Dim Idx As Integer = Settings.Get(Of Integer)("LinkCardOrder")
+        If Idx < 0 OrElse Idx > 5 Then Idx = 0
+        If ComboCardOrder IsNot Nothing AndAlso ComboCardOrder.SelectedIndex <> Idx Then
+            AniControlEnabled += 1
+            ComboCardOrder.SelectedIndex = Idx
+            AniControlEnabled -= 1
+        End If
+        '注意用交错数组（String()()），不是二维数组：VB 的 {"a","b"} 字面量默认推断成 String(,)
+        Dim Orders As String()() = {
+            New String() {"join", "local", "remote"},
+            New String() {"join", "remote", "local"},
+            New String() {"local", "join", "remote"},
+            New String() {"local", "remote", "join"},
+            New String() {"remote", "join", "local"},
+            New String() {"remote", "local", "join"}}
+        Dim ByKey As New Dictionary(Of String, System.Windows.FrameworkElement) From {
+            {"join", CardServerJoin}, {"local", CardServerLocal}, {"remote", CardServerRemote}}
+        For I As Integer = 0 To 2
+            Dim El As System.Windows.FrameworkElement = Nothing
+            If ByKey.TryGetValue(Orders(Idx)(I), El) AndAlso El IsNot Nothing Then Grid.SetRow(El, I)
+        Next
+    End Sub
+
+    Private Sub ComboCardOrder_SelectionChanged(sender As Object, e As SelectionChangedEventArgs) Handles ComboCardOrder.SelectionChanged
+        If ComboCardOrder Is Nothing OrElse ComboCardOrder.SelectedIndex < 0 Then Return
+        '控件树还没建好时（XAML 解析中途）别写设置：那一刻的索引不是用户选的。
+        '不拦的话，页面每次初始化都会把存过的顺序覆盖成第一项。
+        If PanServerCards Is Nothing Then Return
+        Settings.Set("LinkCardOrder", ComboCardOrder.SelectedIndex)
+        ApplyCardOrder()
+    End Sub
+
+    '''<summary>
+    ''' 老版本把「本机托管」用的 127.0.0.1 写进了远程卡片那两格输入框（LinkRconHost / LinkRconPort），
+    ''' 于是远程卡一打开就显示本机地址，看着像能管本机 —— 现在本机走独立的接管通道，这里清一次。
+    ''' </summary>
+    Private Sub MigrateLocalRconHost()
+        If Settings.Get(Of Boolean)("LinkRconHostMigrated") Then Return
+        Settings.Set("LinkRconHostMigrated", True)
+        Dim Host As String = If(Settings.Get(Of String)("LinkRconHost"), "").Trim()
+        If Host <> "" AndAlso IsLocalHost(Host) Then Settings.Set("LinkRconHost", "")
+    End Sub
+
+    ' ── 接管条（启动器重开后接管上次留下的服务端）─────────
+    '''<summary>卡片顶部那条「还在后台跑」的提示 + 专用关服按钮。</summary>
+    Private Sub ShowTakeover(Detail As String)
+        If PanTakeover Is Nothing Then Return
+        If LabTakeoverDetail IsNot Nothing AndAlso Detail <> "" Then LabTakeoverDetail.Text = Detail
+        PanTakeover.Visibility = Visibility.Visible
+    End Sub
+
+    Private Sub HideTakeover()
+        If PanTakeover IsNot Nothing Then PanTakeover.Visibility = Visibility.Collapsed
     End Sub
 
     '''<summary>检查上次启动器启动的服务端是否还在后台跑（启动器重启后 ServerProc 就丢了）。</summary>
@@ -165,11 +502,15 @@ Public Class PageLinkMain
                 Return
             End If
             Dim Dir As String = Settings.Get(Of String)("LinkServerProcDir")
-            LabServerProc.Text = $"后台仍在运行（PID {Pid}，{Settings.Get(Of String)("LinkServerProcTime")} 启动）" &
-                                 If(String.IsNullOrWhiteSpace(Dir), "", vbCrLf & "目录：" & Dir) &
-                                 vbCrLf & "启动器接管不了它的 stdin，但会自动用 RCON 接管命令通道；要关它点「关闭服务器」。"
-            '关键：stdin 断了，RCON 这条 TCP 通道还在 —— 用它接管
-            AutoConnectRcon()
+            Dim Started As String = Settings.Get(Of String)("LinkServerProcTime")
+            Dim Who As String = $"PID {Pid}" & If(String.IsNullOrWhiteSpace(Started), "", "，" & Started & " 启动")
+            '接管后这条细节会被 ConnectLocalRcon 改写成端口，接管失败就留着 PID 让人知道它还活着
+            SetLocalState(StateRunning, "后台运行", Who)
+            '接管条贴在卡片最上面：这个状态下最想干的事就是把它关掉，按钮不该埋进下面那排按钮里
+            ShowTakeover(Who & If(String.IsNullOrWhiteSpace(Dir), "", vbCrLf & "目录：" & Dir) &
+                         vbCrLf & "启动器接管不了它的 stdin（实时输出拿不到），但会用 RCON 接管命令通道，命令和关闭都能用。")
+            '关键：stdin 断了，RCON 这条 TCP 通道还在 —— 用它接管（只在本机这张卡片里，不碰远程）
+            ConnectLocalRcon()
         Catch ex As Exception
             Logger.Warn(ex, "检查遗留服务端失败")
         End Try
@@ -261,14 +602,20 @@ Public Class PageLinkMain
                             "现在连会直接失败。先去「启动」页用正版登录一次，或把「加入时用」改成离线登录。",
                             "还没登录正版账号", "仍然尝试", "取消", IsWarn:=True) <> 1 Then Return
             End If
-            '② 本机服务端开了正版验证，这次却用离线登录
-            Dim LocalDir As String = ServerDir()
-            If Not UseMs AndAlso LocalDir <> "" AndAlso IsLocalServerAddr(Addr) AndAlso
-               ReadPropBool(LocalDir, "online-mode", False) Then
-                If MyMsgBox("这个服务端开了「正版验证」（online-mode=true），但「加入时用」是离线登录。" & vbCrLf & vbCrLf &
-                            "离线账号会被服务端直接拒绝（客户端多半显示 Invalid session 或连接中断）。" & vbCrLf &
-                            "要进去：把服务端的「正版验证」取消勾选并重启，或把「加入时用」改成微软正版登录。",
-                            "正版验证与登录方式不符", "仍然尝试", "取消", IsWarn:=True) <> 1 Then Return
+            '② 离线登录时提醒一句就走，不拦。
+            '「正版验证」是本机服务端的配置项，和「加入时用」没有绑定关系 —— 以前跨卡片联动、
+            '还弹窗逼人二选一，等于把两件不相干的事捆在一起。现在只在真正要连的时候提示，
+            '本机能读到配置就说得具体些，远程读不到就只说个可能性。
+            If Not UseMs Then
+                Dim LocalDir2 As String = ServerDir()
+                If IsLocalServerAddr(Addr) AndAlso LocalDir2 <> "" AndAlso ReadPropBool(LocalDir2, "online-mode", False) Then
+                    Hint("本机这个服务端开着「正版验证」，离线账号会被拒绝（客户端多半显示 Invalid session）。" & vbCrLf &
+                         "要进去：在下方「本地服务器」里取消「正版验证」并重启服务端；或把「加入时用」改成微软正版登录。",
+                         HintType.Red, False)
+                ElseIf Not IsLocalServerAddr(Addr) Then
+                    Hint("用的是离线登录。如果对方服务器开了正版验证，会直接被拒 —— 进不去就把「加入时用」改成微软正版登录（需要先在「启动」页登录正版账号）。",
+                         HintType.Blue, False)
+                End If
             End If
             Settings.Set("LoginType", If(UseMs, McLoginType.Ms, McLoginType.Legacy))
             If McLaunchStart(New McLaunchOptions With {.ServerIp = Addr}) Then
@@ -282,15 +629,10 @@ Public Class PageLinkMain
 
     Private Sub ComboServerLogin_SelectionChanged(sender As Object, e As SelectionChangedEventArgs) Handles ComboServerLogin.SelectionChanged
         Try
+            '只记住选择。**不再联动「正版验证」** ——
+            '那个勾选管的是「本机开的服」，这里是「以什么身份连别人」，两者本来就没有因果关系；
+            '以前切离线就顺手把正版验证关掉，等于替用户改了他没在看的那张卡片的配置。
             Settings.Set("LinkServerLogin", If(ComboServerLogin.SelectedIndex = 1, 1, 0))
-            '只有用户手动切换才联动关「正版验证」。两个坑：
-            '① 程序回填（ServerRefresh 里包的 AniControlEnabled > 0）不该改用户配置 ——
-            '   否则每次打开联机页都会把正版验证悄悄改成未勾，配上自动保存就直接写进文件；
-            '② XAML 初始化时这个回调早于 CheckServerOnlineMode 创建，那时它是 Nothing（曾报过空引用）
-            If AniControlEnabled = 0 AndAlso ComboServerLogin.SelectedIndex = 0 AndAlso CheckServerOnlineMode IsNot Nothing Then
-                CheckServerOnlineMode.SetChecked(False, False)
-            End If
-            UpdateOnlineModeWarn()
         Catch ex As Exception
             Logger.Warn(ex, "保存登录方式失败")
         End Try
@@ -305,13 +647,10 @@ Public Class PageLinkMain
         Dim Follow As Boolean = CheckServerLoginFollow.Checked
         ComboServerLogin.IsEnabled = Not Follow
         If Not Follow Then
-            If LabServerLoginHint IsNot Nothing Then
-                LabServerLoginHint.Text = "登录；离线服务器必须关掉下面的「正版验证」"
-            End If
+            If LabServerLoginHint IsNot Nothing Then LabServerLoginHint.Text = "登录"
             Return
         End If
         Dim UseMs As Boolean = Settings.Get(Of Integer)("LoginType") = CInt(McLoginType.Ms)
-        '加保护：这次是程序同步，不该再走「切到离线就关正版验证」的联动
         AniControlEnabled += 1
         ComboServerLogin.SelectedIndex = If(UseMs, 1, 0)
         AniControlEnabled -= 1
@@ -324,25 +663,6 @@ Public Class PageLinkMain
         If Not user Then Return
         Settings.Set("LinkServerLoginFollow", CheckServerLoginFollow.Checked)
         ApplyServerLoginFollow()
-        UpdateOnlineModeWarn()
-    End Sub
-
-    '''<summary>
-    ''' 「离线登录」却勾着「正版验证」时给个黄条。只提示、不自动改 ——
-    ''' 那可能是用户特意给正版玩家开的服，替他改配置比不提示更糟。
-    ''' </summary>
-    Private _LastOnlineWarn As Boolean? = Nothing
-
-    Private Sub UpdateOnlineModeWarn()
-        If HintOnlineModeConflict Is Nothing Then Return
-        Dim IsOnline As Boolean = CheckServerOnlineMode IsNot Nothing AndAlso CheckServerOnlineMode.Checked
-        Dim LoginIdx As Integer = If(ComboServerLogin Is Nothing, 0, ComboServerLogin.SelectedIndex)
-        Dim Conflict As Boolean = IsOnline AndAlso LoginIdx = 0
-        If _LastOnlineWarn Is Nothing OrElse _LastOnlineWarn.Value <> Conflict Then
-            _LastOnlineWarn = Conflict
-            Logger.Info($"[OnlineModeWarn] 显示={Conflict}（正版验证勾选={IsOnline}，加入时用索引={LoginIdx}）")
-        End If
-        HintOnlineModeConflict.Visibility = If(Conflict, Visibility.Visible, Visibility.Collapsed)
     End Sub
 
     Private Sub CheckServerDefault_Change(sender As Object, user As Boolean) Handles CheckServerDefault.Change
@@ -448,13 +768,11 @@ Public Class PageLinkMain
             If LabConfigAutoSave IsNot Nothing Then
                 LabConfigAutoSave.Text = "改动会自动写入 server.properties，不需要再点保存"
             End If
-            UpdateOnlineModeWarn()
         End Try
     End Sub
 
     '控件一改就排队保存（输入框有 500ms 防抖），不需要再点「保存配置」
     Private Sub ServerConfigControlChanged(sender As Object, e As Object) Handles TextServerPort.TextChanged, TextServerMax.TextChanged, TextServerViewDistance.TextChanged, TextServerMotd.TextChanged, CheckServerWhitelist.Change, CheckServerOnlineMode.Change, CheckServerPvp.Change, ComboServerDifficulty.SelectionChanged, ComboServerGamemode.SelectionChanged
-        UpdateOnlineModeWarn()
         ServerConfigChanged(sender, e)
     End Sub
 
@@ -598,6 +916,11 @@ Public Class PageLinkMain
     ''' 都没有时要说清是「只有安装器」还是「什么都没有」，别让用户以为装好了、去启动安装程序。
     ''' </summary>
     Private Sub StartServerByDir(Dir As String)
+        '换了服务端（或上一台还没收干净）：旧的本机接管通道一律作废，免得命令发到已经不在的那个进程上
+        CloseLocalRcon()
+        HideTakeover()
+        '跨网运行的话，工具得先开着外面才连得进来
+        AutoLaunchNetToolOnServerStart()
         Dim D As String = Dir.TrimEnd("\"c)
         If Not DirectoryUtils.Exists(D) Then
             Hint("服务端目录不存在：" & D & vbCrLf & "如果被移动或删除了，用「添加已有」重新指一次。", HintType.Red, False)
@@ -705,76 +1028,163 @@ Public Class PageLinkMain
         SaveServerProcRecord(ServerProc, Dir)
         AddHandler ServerProc.OutputDataReceived, AddressOf ServerOutput
         AddHandler ServerProc.ErrorDataReceived, AddressOf ServerOutput
+        WatchServerExit(ServerProc)
         ServerProc.BeginOutputReadLine()
         ServerProc.BeginErrorReadLine()
-        LabServerProc.Text = $"启动中…（PID {ServerProc.Id}）"
+        SetLocalState(StateBusy, "启动中", $"PID {ServerProc.Id}，正在加载世界")
         Hint("服务端已启动：首次启动要生成世界，可能需要 1–2 分钟。日志写在 server-run.log。", HintType.Blue, False)
+    End Sub
+
+    '''<summary>
+    ''' 关掉「不是本进程起的」服务端（启动器重开后接管的那种）：先试 RCON 正常 stop，接不上就强杀。
+    ''' 接管条上的「关闭后台服务端」和下面那排「关闭服务器」都走这里，逻辑只留一份。
+    ''' </summary>
+    Private Sub StopLeftoverServer()
+        Dim OldPid As Integer = Settings.Get(Of Integer)("LinkServerProcPid")
+        Dim Old As System.Diagnostics.Process = FindServerProcess(OldPid)
+        If Old Is Nothing Then
+            ClearServerProcRecord()
+            CloseLocalRcon()
+            HideTakeover()
+            SetLocalState(StateIdle, "未运行")
+            Hint("服务端没有在运行。", HintType.Blue, False)
+            Return
+        End If
+        Dim Client As RconClient = If(RconLocal IsNot Nothing AndAlso RconLocal.IsOpen, RconLocal, Nothing)
+        Dim Tip As String = If(Client IsNot Nothing,
+            "可以走本机接管通道让它正常 stop、保存世界后退出。",
+            "RCON 通道没接上，只能强制结束 —— 会丢掉未保存的进度（世界数据通常已落盘）。")
+        If MyMsgBox($"这个服务端是上次启动器启动的，还在后台运行（PID {OldPid}）。" & vbCrLf & vbCrLf & Tip,
+                    "关闭服务端", "关闭", "取消", IsWarn:=True) <> 1 Then Return
+        '先挂上退出监听：这个进程不是本进程起的，但只要有句柄就收得到 Exited，
+        '这样即使下面那条线程被异常打断，服务端一退状态也会自己被点灭
+        WatchServerExit(Old)
+        If Client IsNot Nothing Then
+            SetLocalState(StateBusy, "关闭中", "已发 stop，等它自己退出")
+            RunInNewThread(Sub()
+                Dim Err As String = ""
+                Dim StillAlive As Boolean = False
+                Try
+                    Client.Command("stop", Err)
+                    Dim Waited As Integer = 0
+                    Do While Not Old.HasExited AndAlso Waited < 20000
+                        System.Threading.Thread.Sleep(500)
+                        Waited += 500
+                    Loop
+                    If Not Old.HasExited Then
+                        ForceKillServer(OldPid)
+                        StillAlive = FindServerProcess(OldPid) IsNot Nothing
+                    End If
+                Catch ex As Exception
+                    Logger.Warn(ex, "通过 RCON 关闭遗留服务端失败")
+                    StillAlive = FindServerProcess(OldPid) IsNot Nothing
+                Finally
+                    '不管上面成没成，状态都得落地 —— 线程里抛异常就永远卡在「关闭中」是最糟的
+                    RunInUi(Sub()
+                        ClearServerProcRecord()
+                        CloseLocalRcon()
+                        HideTakeover()
+                        If StillAlive Then
+                            SetLocalState(StateError, "仍在运行", "stop 没生效，进程还在")
+                            ServerConsoleAppend("[本机] stop 已发出，但进程还在（" & If(Err = "", "没有回执", Err) & "）")
+                        Else
+                            SetLocalState(StateIdle, "未运行")
+                            ServerConsoleAppend("[本机] 已发送 stop，服务端已退出")
+                        End If
+                    End Sub)
+                End Try
+            End Sub, "Stop Server Via Rcon")
+        Else
+            SetLocalState(StateBusy, "关闭中", "正在结束进程，稍等")
+            If ForceKillServer(OldPid) Then
+                ClearServerProcRecord()
+                CloseLocalRcon()
+                HideTakeover()
+                SetLocalState(StateIdle, "未运行", "已强制结束")
+                ServerConsoleAppend($"[本机] 已强制结束遗留服务端 PID {OldPid}")
+            Else
+                SetLocalState(StateError, "结束失败", "权限不够？用任务管理器结束 java")
+                Hint("强制结束失败，可能权限不够。用任务管理器结束 java 进程。", HintType.Red, False)
+            End If
+        End If
+    End Sub
+
+    Private Sub BtnTakeoverStop_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnTakeoverStop.Click
+        StopLeftoverServer()
+    End Sub
+
+    '''<summary>改过 server.properties 的 rcon 端口 / 密码后，断开重连一次。</summary>
+    Private Sub BtnTakeoverReconnect_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnTakeoverReconnect.Click
+        CloseLocalRcon()
+        ConnectLocalRcon()
     End Sub
 
     Private Sub BtnServerStop_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnServerStop.Click
         If ServerProc Is Nothing OrElse ServerProc.HasExited Then
-            '本进程没在管，但可能是上次启动器留下的
-            Dim OldPid As Integer = Settings.Get(Of Integer)("LinkServerProcPid")
-            Dim Old As System.Diagnostics.Process = FindServerProcess(OldPid)
-            If Old IsNot Nothing Then
-                Dim ViaRcon As Boolean = (Rcon IsNot Nothing AndAlso Rcon.IsOpen)
-                Dim Tip As String = If(ViaRcon,
-                    "可以走 RCON 让它正常 stop、保存世界后退出。",
-                    "RCON 没连上，只能强制结束 —— 会丢掉未保存的进度（世界数据通常已落盘）。")
-                If MyMsgBox($"这个服务端是上次启动器启动的，还在后台运行（PID {OldPid}）。" & vbCrLf & vbCrLf & Tip,
-                            "关闭服务端", "关闭", "取消", IsWarn:=True) = 1 Then
-                    If ViaRcon Then
-                        LabServerProc.Text = "正在通过 RCON 关闭…"
-                        RunInNewThread(Sub()
-                            Dim Err As String = ""
-                            Rcon.Command("stop", Err)
-                            Dim Waited As Integer = 0
-                            Do While Not Old.HasExited AndAlso Waited < 20000
-                                System.Threading.Thread.Sleep(500)
-                                Waited += 500
-                            Loop
-                            If Not Old.HasExited Then ForceKillServer(OldPid)
-                            RunInUi(Sub()
-                                ClearServerProcRecord()
-                                LabServerProc.Text = "已停止"
-                                ServerConsoleAppend("[RCON] 已发送 stop，服务端已退出")
-                            End Sub)
-                        End Sub, "Stop Server Via Rcon")
-                    Else
-                        LabServerProc.Text = "正在强制结束…"
-                        If ForceKillServer(OldPid) Then
-                            ClearServerProcRecord()
-                            LabServerProc.Text = "已强制结束"
-                            ServerConsoleAppend($"[本地] 已强制结束遗留服务端 PID {OldPid}")
-                        Else
-                            LabServerProc.Text = "强制结束失败，试试任务管理器"
-                            Hint("强制结束失败，可能权限不够。用任务管理器结束 java 进程。", HintType.Red, False)
-                        End If
-                    End If
-                End If
-                Return
-            End If
-            ClearServerProcRecord()
-            Hint("服务端没有在运行。", HintType.Blue, False)
+            '本进程没在管，可能还挂着上次启动器留下的那个
+            StopLeftoverServer()
             Return
         End If
         If MyMsgBox("向服务端发送 stop，保存世界后关闭；玩家会被断开。继续？", "关闭服务器", "关闭", "取消", IsWarn:=True) <> 1 Then Return
         Try
-            LabServerProc.Text = "正在关闭…"
+            SetLocalState(StateBusy, "关闭中", "已发 stop，等它保存世界")
             WriteServerLine("stop")
             Dim P As System.Diagnostics.Process = ServerProc
             System.Threading.Tasks.Task.Run(Sub()
                 Try
                     If Not P.WaitForExit(15000) Then P.Kill()
                     ClearServerProcRecord()
-                    RunInUi(Sub() LabServerProc.Text = "已停止")
+                    RunInUi(Sub() SetLocalState(StateIdle, "未运行"))
                 Catch ex As Exception
-                    RunInUi(Sub() LabServerProc.Text = "停止失败：" & ex.Message)
+                    RunInUi(Sub() SetLocalState(StateError, "关闭失败", "停止失败：" & ex.Message))
                 End Try
             End Sub)
         Catch ex As Exception
             Logger.Error(ex, "关闭服务端失败")
             Hint("关闭失败：" & ex.Message, HintType.Red, False)
+        End Try
+    End Sub
+
+    '''<summary>断开本机接管通道（本地服务端已经关掉 / 换了服务端目录时用）。</summary>
+    Private Sub CloseLocalRcon()
+        Try
+            If RconLocal IsNot Nothing Then
+                RconLocal.Close()
+                RconLocal = Nothing
+            End If
+        Catch ex As Exception
+            Logger.Warn(ex, "断开本机 RCON 通道失败")
+        End Try
+    End Sub
+
+    '''<summary>
+    ''' 盯着服务端进程：它自己退了（崩溃 / 被任务管理器结束 / stop 生效）就把状态点灭掉。
+    ''' 没有这条，徽标会一直亮着「运行中」，比不显示还误导。
+    ''' </summary>
+    Private _ExitWatchedPids As New HashSet(Of Integer)
+
+    Private Sub WatchServerExit(P As System.Diagnostics.Process)
+        Try
+            '同一个进程只挂一次：接管条上连点几次「关闭」会重复挂，退出时会连着清好几遍
+            If P Is Nothing OrElse _ExitWatchedPids.Contains(P.Id) Then Return
+            _ExitWatchedPids.Add(P.Id)
+            P.EnableRaisingEvents = True
+            AddHandler P.Exited, Sub(sender As Object, e As EventArgs)
+                                     Dim Dead As System.Diagnostics.Process = TryCast(sender, System.Diagnostics.Process)
+                                     If Dead IsNot Nothing Then _ExitWatchedPids.Remove(Dead.Id)
+                                     RunInUi(Sub()
+                                                 '本进程已经又起了新的服务端：这条退出是上一台的事，不能把新状态点灭
+                                                 If ServerProc IsNot Nothing AndAlso Not ServerProc.HasExited AndAlso
+                                                    Dead IsNot Nothing AndAlso Dead.Id <> ServerProc.Id Then Return
+                                                 ClearServerProcRecord()
+                                                 CloseLocalRcon()
+                                                 HideTakeover()
+                                                 SetLocalState(StateIdle, "未运行", "服务端已退出")
+                                                 ServerConsoleAppend("[本机] 服务端进程已退出。")
+                                             End Sub)
+                                 End Sub
+        Catch ex As Exception
+            Logger.Warn(ex, "监听服务端退出失败")
         End Try
     End Sub
 
@@ -789,7 +1199,7 @@ Public Class PageLinkMain
         If Line.Contains("Starting minecraft server version") Then
             Dim Idx As Integer = Line.IndexOf("version", StringComparison.OrdinalIgnoreCase)
             ServerVersion = Line.Substring(Idx + 7).Trim().TrimEnd("."c)
-            RunInUi(Sub() LabServerProc.Text = $"启动中…（服务端版本 {ServerVersion}）")
+            RunInUi(Sub() SetLocalState(StateBusy, "启动中", $"服务端版本 {ServerVersion}，正在加载"))
         End If
         If Line.Contains("Done") AndAlso Line.Contains("For help") Then
             RunInUi(Sub() ServerMarkReady())
@@ -801,6 +1211,8 @@ Public Class PageLinkMain
     ' ── 服务端控制台 ──────────────────────────────────
     Private Const ServerConsoleMaxChars As Integer = 200000
     Private ServerConsoleChars As Integer = 0
+    '远程控制台单独计数：它和本地控制台是两块屏，互不覆盖，也互不清空
+    Private RconConsoleChars As Integer = 0
 
     '''<summary>按物理内存推荐服务端堆大小（MB）：1/4，夹在 2G–8G，按 512M 取整。</summary>
     Private Function SuggestServerMemoryMb() As Integer
@@ -852,34 +1264,71 @@ Public Class PageLinkMain
         If Cmd = "" Then Return
         '服务端从 stdin 读的是不带斜杠的命令；玩家习惯带 /，帮着去掉
         If Cmd.StartsWith("/") Then Cmd = Cmd.Substring(1)
-        '本机进程活着优先走 stdin（能拿到实时输出）；否则走 RCON（启动器重启后接管用）
-        If Not ServerRunning() AndAlso Rcon IsNot Nothing AndAlso Rcon.IsOpen Then
+        '本机进程活着优先走 stdin（能拿到实时输出）
+        If ServerRunning() Then
+            Try
+                WriteServerLine(Cmd)
+                TextServerCommand.Text = ""
+                ServerConsoleAppend("> " & Cmd)
+            Catch ex As Exception
+                Hint("发送失败：" & ex.Message, HintType.Red, False)
+            End Try
+            Return
+        End If
+        '进程不在、但本机接管通道还连着（启动器重启后的遗留服务端）：回显仍留在本地控制台
+        If RconLocal IsNot Nothing AndAlso RconLocal.IsOpen Then
             TextServerCommand.Text = ""
-            ServerConsoleAppend("> " & Cmd & "  [RCON]")
-            RunInNewThread(Sub()
-                Dim Err As String = ""
-                Dim Res As String = Rcon.Command(Cmd, Err)
-                RunInUi(Sub()
-                    If Err <> "" Then
-                        ServerConsoleAppend("! " & Err)
-                    ElseIf If(Res, "").Trim() <> "" Then
-                        ServerConsoleAppend(Res.TrimEnd())
-                    End If
-                End Sub)
-            End Sub, "Rcon Command")
+            RconRunLocal(Cmd)
             Return
         End If
-        If Not ServerRunning() Then
-            Hint("本地服务端没在运行。想控制远程服务器，先在下面「远程服务器（RCON）」里连上。", HintType.Blue, False)
+        '这块输入框从设计上就只管本机。远程连着也只提醒一句，不把命令偷偷发到别人的服务器上
+        If Rcon IsNot Nothing AndAlso Rcon.IsOpen Then
+            Hint("这里是本机服务端的命令框，不会发到远程。" & vbCrLf &
+                 "要控制 " & If(TextRconHost.Text, "").Trim() & "，用下面「远程服务器（RCON）」卡片里的远程命令框。", HintType.Blue, False)
             Return
         End If
+        Hint("本地服务端没在运行。想控制远程服务器，先在下面「远程服务器（RCON）」里连上。", HintType.Blue, False)
+    End Sub
+
+    '''<summary>
+    ''' 远程卡片的独立控制台。RCON 的请求与回显只写这里 ——
+    ''' 以前它和本机服务端共用一块 TextServerConsole，连上远程服之后本机日志会被别人的输出冲掉。
+    ''' </summary>
+    Private Sub RconConsoleAppend(Line As String)
+        If TextRconConsole Is Nothing Then Return
         Try
-            WriteServerLine(Cmd)
-            TextServerCommand.Text = ""
-            ServerConsoleAppend("> " & Cmd)
+            RconConsoleChars += Line.Length + 2
+            If RconConsoleChars > ServerConsoleMaxChars Then
+                Dim T As String = TextRconConsole.Text
+                TextRconConsole.Text = T.Substring(T.Length \ 2)
+                RconConsoleChars = TextRconConsole.Text.Length
+            End If
+            TextRconConsole.AppendText(Line & vbCrLf)
+            TextRconConsole.ScrollToEnd()
         Catch ex As Exception
-            Hint("发送失败：" & ex.Message, HintType.Red, False)
+            Logger.Warn(ex, "追加远程控制台失败")
         End Try
+    End Sub
+
+    '''<summary>
+    ''' 发一条远程 RCON 命令，回显只进远程控制台。
+    ''' 本机服务端的命令走 <see cref="RconRunLocal"/>，两条线各有各的屏，不再靠参数区分。
+    ''' </summary>
+    Private Sub RconRun(Cmd As String, Optional OnDone As Action = Nothing)
+        If Rcon Is Nothing OrElse Not Rcon.IsOpen Then Return
+        RconConsoleAppend("> " & Cmd)
+        RunInNewThread(Sub()
+            Dim Err As String = ""
+            Dim Res As String = Rcon.Command(Cmd, Err)
+            RunInUi(Sub()
+                If Err <> "" Then
+                    RconConsoleAppend("! " & Err)
+                ElseIf If(Res, "").Trim() <> "" Then
+                    RconConsoleAppend(Res.TrimEnd())
+                End If
+                If OnDone IsNot Nothing Then OnDone()
+            End Sub)
+        End Sub, "Rcon Run")
     End Sub
 
     ' ── 远程服务器（RCON）──────────────────────────────
@@ -1012,6 +1461,13 @@ Public Class PageLinkMain
 
     Private Rcon As RconClient = Nothing
 
+    '''<summary>
+    ''' 本机接管通道：启动器重启后 stdin 没了，只能靠 RCON 接着管本机服务端。
+    ''' 和上面那条 <see cref="Rcon"/> 严格分开 —— 远程卡片只管远程，本机遗留进程不进远程卡片的输入框和回显，
+    ''' 否则「关掉启动器再打开」会看到远程卡片里赫然写着 127.0.0.1，谁都以为自己在管云服务器。
+    ''' </summary>
+    Private RconLocal As RconClient = Nothing
+
     ' 密码框里的占位符：真实密码不回显，只显示这几个圆点（长度也不暴露）
     Private Const RconPassMask As String = "••••••••"
     ' MC 的 RCON 默认端口；「重置」和设置缺省都用它
@@ -1111,7 +1567,8 @@ Public Class PageLinkMain
             Settings.Set("LinkRconPass", Pass)
         End If
         BtnRconConnect.IsEnabled = False
-        LabRconState.Text = "正在连接…"
+        SetRemoteDetail("正在连接…")
+        SetRemoteState(StateBusy, "连接中…")
         RunInNewThread(Sub()
             If Rcon IsNot Nothing Then Rcon.Close()
             Dim Client As New RconClient()
@@ -1121,14 +1578,16 @@ Public Class PageLinkMain
                 BtnRconConnect.IsEnabled = True
                 If Ok Then
                     Rcon = Client
-                    LabRconState.Text = $"已连接 {Host}:{Port}（命令发往远程）"
-                    ServerConsoleAppend($"[RCON] 已连接 {Host}:{Port}")
+                    SetRemoteDetail($"已连接 {Host}:{Port}（命令发往远程）")
+                    SetRemoteState(StateRunning, "运行中")
+                    RconConsoleAppend($"[RCON] 已连接 {Host}:{Port}")
                     '默认不保留密码：连上就把框清空，下次要重输
                     If Not Settings.Get(Of Boolean)("LinkRconRememberPass") Then TextRconPass.Text = ""
                     '玩家名单要跟着切到「远程模式」：连上远端后勾选是发到远端的，不能再显示本机名单
                     WhitelistRefresh()
                 Else
-                    LabRconState.Text = "连接失败"
+                    SetRemoteDetail("连接失败")
+                    SetRemoteState(StateError, "连接失败")
                     Client.Close()
                     Hint("RCON 连接失败：" & Err & vbCrLf &
                          "检查地址 / 端口 / 密码，以及服务端是否开了 enable-rcon=true。", HintType.Red, False)
@@ -1141,9 +1600,10 @@ Public Class PageLinkMain
         If Rcon IsNot Nothing Then
             Rcon.Close()
             Rcon = Nothing
-            ServerConsoleAppend("[RCON] 已断开")
+            RconConsoleAppend("[RCON] 已断开")
         End If
-        LabRconState.Text = "未连接"
+        SetRemoteDetail("未连接")
+        SetRemoteState(StateIdle, "未连接")
         WhitelistRefresh() '断开后回到本机名单
     End Sub
 
@@ -1157,14 +1617,15 @@ Public Class PageLinkMain
             If Rcon IsNot Nothing Then
                 Rcon.Close()
                 Rcon = Nothing
-                ServerConsoleAppend("[RCON] 已断开")
+                RconConsoleAppend("[RCON] 已断开")
             End If
             TextRconHost.Text = ""
             TextRconPort.Text = DefaultRconPort.ToString()
             TextRconPass.Text = ""
             Settings.Set("LinkRconHost", "")
             Settings.Set("LinkRconPort", DefaultRconPort)
-            LabRconState.Text = "未连接"
+            SetRemoteDetail("未连接")
+            SetRemoteState(StateIdle, "未连接")
             WhitelistRefresh() '断开后回到本机名单
             Dim Extra As String = ""
             If Settings.Get(Of Boolean)("LinkRconRememberPass") Then
@@ -1199,10 +1660,12 @@ Public Class PageLinkMain
                 End If
             End If
             If Alive Then
-                LabRconState.Text = $"已连接 {If(TextRconHost.Text, "").Trim()}:{If(TextRconPort.Text, "").Trim()}（命令发往远程）"
+                SetRemoteDetail($"已连接 {If(TextRconHost.Text, "").Trim()}:{If(TextRconPort.Text, "").Trim()}（命令发往远程）")
+                SetRemoteState(StateRunning, "运行中")
                 Hint("已刷新：连接仍然有效。", HintType.Green, False)
             Else
-                LabRconState.Text = "未连接"
+                SetRemoteDetail("未连接")
+                SetRemoteState(StateIdle, "未连接")
                 Hint("已刷新：当前未连接。", HintType.Blue, False)
             End If
             WhitelistRefresh() '连着就显示远程说明，断了就回本机名单
@@ -1279,53 +1742,128 @@ Public Class PageLinkMain
         End If
     End Sub
 
-    '''<summary>生成新的随机密码，写进设置和服务端配置，并直接把新密码显示出来。</summary>
+    '''<summary>
+    ''' 给**本机**服务端重新生成 RCON 密码：只改这个服务端目录里的 server.properties，
+    ''' 新密码打印到本地控制台（可复制），不碰远程卡片里的任何东西。
+    ''' </summary>
     Private Sub BtnRconReset_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnRconReset.Click
-        If MyMsgBox("会生成一个新的随机 RCON 密码，写进启动器设置和这个服务端的 server.properties。" & vbCrLf & vbCrLf &
+        Dim Dir As String = ServerDir()
+        If Dir = "" Then
+            Hint("先在上面「已装服务端」里选一个服务端 —— 密码要写进它的 server.properties，没目录就无处可写。", HintType.Blue, False)
+            Return
+        End If
+        Dim Props As String = Dir.TrimEnd("\"c) & "\server.properties"
+        If Not FileUtils.Exists(Props) Then
+            Hint("这个服务端目录里没有 server.properties（还没启动过一次？）。先开一次服生成配置，再来改密码。", HintType.Blue, False)
+            Return
+        End If
+        If MyMsgBox("会给这个本机服务端生成新的随机 RCON 密码，写进它的 server.properties。" & vbCrLf & vbCrLf &
                     "密码始终以 server.properties 里的 rcon.password 为准 —— 换别的启动器、或者直接用命令行开服，" &
                     "用的也是这个密码，不会变成只有我们能连。" & vbCrLf & vbCrLf &
-                    "已经在跑的服务端要重启后才用新密码。", "重新生成 RCON 密码", "生成", "取消", IsWarn:=True) <> 1 Then Return
+                    "新密码会打印在下面的服务端控制台里，方便复制；已经在跑的服务端要重启后才用新密码。",
+                    "重新生成 RCON 密码", "生成", "取消", IsWarn:=True) <> 1 Then Return
         Dim NewPass As String = Guid.NewGuid().ToString("N").Substring(0, 16)
-        '默认只写服务端配置；勾了「记住密码」才额外存一份到设置
-        If Settings.Get(Of Boolean)("LinkRconRememberPass") Then Settings.Set("LinkRconPass", NewPass)
-        '写进服务端配置文件；还没选过 server.jar 就只能先存设置
-        Dim Dir As String = ServerDir()
-        Dim Written As Boolean = False
-        If Dir <> "" Then
-            Try
-                Dim Props As String = Dir & "\server.properties"
-                If FileUtils.Exists(Props) Then
-                    Dim Lines As New List(Of String)
-                    Dim HasPass As Boolean = False
-                    For Each L As String In System.IO.File.ReadAllLines(Props)
-                        If L.StartsWith("rcon.password=") Then
-                            Lines.Add("rcon.password=" & NewPass)
-                            HasPass = True
-                        Else
-                            Lines.Add(L)
-                        End If
-                    Next
-                    If Not HasPass Then Lines.Add("rcon.password=" & NewPass)
-                    FileUtils.Write(Props, String.Join(vbCrLf, Lines) & vbCrLf, encoding:=New System.Text.UTF8Encoding(False))
-                    Written = True
+        Try
+            Dim Lines As New List(Of String)
+            Dim HasPass As Boolean = False
+            For Each L As String In System.IO.File.ReadAllLines(Props)
+                If L.StartsWith("rcon.password=") Then
+                    Lines.Add("rcon.password=" & NewPass)
+                    HasPass = True
+                Else
+                    Lines.Add(L)
                 End If
-            Catch ex As Exception
-                Logger.Warn(ex, "写入新的 RCON 密码失败")
-            End Try
+            Next
+            If Not HasPass Then Lines.Add("rcon.password=" & NewPass)
+            FileUtils.Write(Props, String.Join(vbCrLf, Lines) & vbCrLf, encoding:=New System.Text.UTF8Encoding(False))
+        Catch ex As Exception
+            Logger.Warn(ex, "写入新的 RCON 密码失败")
+            Hint("写入失败：" & ex.Message, HintType.Red, False)
+            Return
+        End Try
+        '旧连接用的还是旧密码，先断 —— 只断本机这条，远程卡片那条与它无关
+        CloseLocalRcon()
+        ServerConsoleAppend("[本机] 已生成新的 RCON 密码（重启服务端后生效）：" & NewPass)
+        Hint("新的 RCON 密码已打印在下面的服务端控制台里，可以直接选中复制。" & vbCrLf &
+             "服务端重启后才用新密码。", HintType.Green, False)
+    End Sub
+
+    '''<summary>
+    ''' 远程卡片上的「关闭服务器」：经 RCON 发 stop，然后盯着这条通道 ——
+    ''' 服务端真的退出了，TCP 一定会断；断不开就是没退，得如实说。
+    ''' </summary>
+    Private Sub BtnRconStop_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnRconStop.Click
+        If Rcon Is Nothing OrElse Not Rcon.IsOpen Then
+            Hint("先点「连接」把 RCON 通道建立起来，才能远程关掉服务端。" & vbCrLf &
+                 "连不上就说明那边没开 enable-rcon，只能登录那台机器自己关。", HintType.Blue, False)
+            Return
         End If
-        '旧连接用的还是旧密码，先断
-        If Rcon IsNot Nothing Then
-            Rcon.Close()
-            Rcon = Nothing
-        End If
-        LabRconState.Text = "未连接"
-        '直接把明文显示出来，方便立刻抄到别处
-        CheckRconShowPass.SetChecked(True, False)
-        RefreshRconPassDisplay()
-        Hint("新的 RCON 密码：" & NewPass & vbCrLf &
-             If(Written, "已写入 server.properties，换别的工具开服也是这个密码。",
-                        "没找到 server.properties，先存在设置里，开一次服后会写进去。") &
-             vbCrLf & "服务端要重启后才用新密码。", HintType.Green, False)
+        Dim Host As String = If(TextRconHost.Text, "").Trim()
+        If MyMsgBox($"经 RCON 向 {Host} 发送 stop：服务端会保存世界、断开所有玩家后退出。" & vbCrLf & vbCrLf &
+                    "进程由那边自己收尾 —— 如果它跑在面板 / 容器里，面板可能会把它重新拉起来，这不归启动器管。继续？",
+                    "关闭远程服务器", "关闭", "取消", IsWarn:=True) <> 1 Then Return
+        SetRemoteState(StateBusy, "正在关闭…")
+        SetRemoteDetail("已发送 stop，等待退出…")
+        RconConsoleAppend("[RCON] 发送 stop，等待服务端保存世界并退出")
+        Dim Client As RconClient = Rcon
+        RunInNewThread(Sub()
+            Dim Err As String = ""
+            Client.Command("stop", Err)
+            RunInUi(Sub()
+                If Err <> "" Then
+                    RconConsoleAppend("! " & Err)
+                    SetRemoteState(StateError, "关闭失败")
+                    SetRemoteDetail("关闭失败：" & Err)
+                    Return
+                End If
+                WatchRemoteStop()
+            End Sub)
+        End Sub, "Rcon Stop")
+    End Sub
+
+    '''<summary>
+    ''' stop 发出去之后每秒探一次活（发 list，看回不回），最多等 40 秒。
+    ''' 通道断了 = 服务端确实退出了；一直不断 = stop 没生效，别谎报「已停止」。
+    ''' </summary>
+    Private Sub WatchRemoteStop()
+        Dim Client As RconClient = Rcon
+        If Client Is Nothing Then Return
+        RunInNewThread(Sub()
+            Dim Waited As Integer = 0
+            Dim Dead As Boolean = False
+            Do While Waited < 40000
+                System.Threading.Thread.Sleep(1000)
+                Waited += 1000
+                If Not Client.IsOpen Then
+                    Dead = True
+                    Exit Do
+                End If
+                Dim Err As String = ""
+                Client.Command("list", Err)
+                If Err <> "" Then
+                    Dead = True
+                    Exit Do
+                End If
+            Loop
+            'IsOpen 只看 Socket.Connected，它可能还赖着 True；命令发不出去 / 读不回来才是真断了
+            Dim StillAlive As Boolean = (Not Dead) AndAlso Waited >= 40000
+            RunInUi(Sub()
+                If StillAlive Then
+                    SetRemoteState(StateError, "仍在运行")
+                    SetRemoteDetail("stop 没生效，40 秒内没退出")
+                    RconConsoleAppend("[RCON] 40 秒过去服务端还响应命令：stop 没生效（控制台可能被面板锁着），去那边看一下进程。")
+                    Return
+                End If
+                If Rcon IsNot Nothing Then
+                    Rcon.Close()
+                    Rcon = Nothing
+                End If
+                SetRemoteState(StateIdle, "已关闭")
+                SetRemoteDetail("连接已断开（服务端已关闭）")
+                RconConsoleAppend("[RCON] 通道断开，服务端已停止")
+                WhitelistRefresh()
+            End Sub)
+        End Sub, "Watch Remote Stop")
     End Sub
 
     Private Sub BtnServerCommandSend_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnServerCommandSend.Click
@@ -1346,6 +1884,37 @@ Public Class PageLinkMain
         End If
     End Sub
 
+    ' ── 远程命令行（独立于本地控制台）──────────────────
+    Private Sub SendRconCommand()
+        If Rcon Is Nothing OrElse Not Rcon.IsOpen Then
+            Hint("还没连上远程服务器：先在远程卡片里点「连接」。", HintType.Blue, False)
+            Return
+        End If
+        Dim Cmd As String = If(TextRconCommand.Text, "").Trim()
+        If Cmd = "" Then Return
+        If Cmd.StartsWith("/") Then Cmd = Cmd.Substring(1)
+        TextRconCommand.Text = ""
+        RconRun(Cmd)
+    End Sub
+
+    Private Sub BtnRconSend_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnRconSend.Click
+        SendRconCommand()
+    End Sub
+
+    Private Sub TextRconCommand_KeyDown(sender As Object, e As System.Windows.Input.KeyEventArgs) Handles TextRconCommand.KeyDown
+        If e.Key = System.Windows.Input.Key.Enter Then
+            e.Handled = True
+            SendRconCommand()
+        End If
+    End Sub
+
+    Private Sub BtnRconClear_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnRconClear.Click
+        If TextRconConsole IsNot Nothing Then
+            TextRconConsole.Clear()
+            RconConsoleChars = 0
+        End If
+    End Sub
+
     Private Sub ServerMarkReady()
         Dim Dir As String = ServerDir()
         Dim Port As Integer = 25565
@@ -1359,7 +1928,7 @@ Public Class PageLinkMain
         Catch
         End Try
         Dim Addr As String = $"127.0.0.1:{Port}"
-        LabServerProc.Text = $"已就绪：{Addr}" & If(ServerVersion <> "", $"（服务端 {ServerVersion}）", "")
+        SetLocalState(StateRunning, "运行中", $"已就绪：{Addr}" & If(ServerVersion <> "", $"（服务端 {ServerVersion}）", ""))
         TextServerAddr.Text = Addr
         Settings.Set("LinkServerAddress", Addr)
         ServerStatusRefresh()
@@ -1496,6 +2065,152 @@ Public Class PageLinkMain
         End Try
     End Function
 
+    ' ── 运行状态徽标 ────────────────────────────────────
+    '两张卡片各挂一个圆点 + 一句话。等级只有四档，颜色写死（不跟主题走）：
+    '灰 = 没跑、绿 = 跑着、黄 = 正在变（启动中 / 关闭中）、红 = 出了岔子。
+    '不用主题画刷是因为 ColorBrush* 全是蓝灰系，绿和黄没有对应键，硬套会看不出区别。
+    Private Const StateIdle As Integer = 0
+    Private Const StateRunning As Integer = 1
+    Private Const StateBusy As Integer = 2
+    Private Const StateError As Integer = 3
+
+    Private Sub SetStateBadge(Dot As System.Windows.Shapes.Ellipse, Lab As TextBlock, Level As Integer, Text As String)
+        Try
+            Dim C As System.Windows.Media.Color
+            Select Case Level
+                Case StateRunning : C = System.Windows.Media.Color.FromRgb(&H22, &HA5, &H59)
+                Case StateBusy : C = System.Windows.Media.Color.FromRgb(&HE0, &HA3, &H3E)
+                Case StateError : C = System.Windows.Media.Color.FromRgb(&HD9, &H53, &H4F)
+                Case Else : C = System.Windows.Media.Color.FromRgb(&H9A, &HA0, &HA6)
+            End Select
+            If Dot IsNot Nothing Then
+                Dot.Fill = New System.Windows.Media.SolidColorBrush(C)
+                '没跑的时候点暗一点，跑起来才亮 —— 扫一眼就能分出来
+                Dot.Opacity = If(Level = StateRunning, 1.0, 0.7)
+            End If
+            If Lab IsNot Nothing AndAlso Text <> "" Then Lab.Text = Text
+        Catch ex As Exception
+            Logger.Warn(ex, "更新运行状态徽标失败")
+        End Try
+    End Sub
+
+    '''<summary>本机服务端的状态：徽标 + 下面那行细节（PID / 端口 / 版本）。</summary>
+    Private Sub SetLocalState(Level As Integer, StateText As String, Optional Detail As String = Nothing)
+        SetStateBadge(DotLocalState, LabLocalState, Level, StateText)
+        '不给 Detail 就是「这个状态没有附加信息」—— 必须清空，
+        '否则从「启动中（PID …）」回到「未运行」时，那行旧字会一直挂在那儿
+        If LabServerProc IsNot Nothing Then LabServerProc.Text = If(Detail, "")
+        _LocalStateLevel = Level
+        SyncLocalDetail()
+    End Sub
+
+    '''<summary>
+    ''' 细节行只在「带徽标里没有的信息」时才露出来。
+    ''' 没启动时徽标写「未运行」、细节也写着「未运行」，同一句话并排出现两次，看着就像状态没对上；
+    ''' 跑起来后细节是端口 / PID / 版本，跟徽标不重样，那才是它该出现的时候。
+    ''' </summary>
+    Private Sub SyncLocalDetail()
+        If LabServerProc Is Nothing Then Return
+        Dim D As String = If(LabServerProc.Text, "").Trim()
+        LabServerProc.Visibility = If(D = "" OrElse D = If(LabLocalState.Text, "").Trim(), Visibility.Collapsed, Visibility.Visible)
+    End Sub
+
+    '''<summary>远程服务端的状态。只有 RCON 通道通着才判断得出它在跑，断了就说「未连接」。</summary>
+    Private Sub SetRemoteState(Level As Integer, StateText As String)
+        SetStateBadge(DotRemoteState, LabRemoteState, Level, StateText)
+        '回到「未连接」时把「已连接 host:port」这类旧细节清掉，别让两句话互相打架
+        If Level = StateIdle AndAlso LabRconState IsNot Nothing Then LabRconState.Text = ""
+        _RemoteStateLevel = Level
+        SyncRemoteDetail()
+    End Sub
+
+    Private Sub SetRemoteDetail(Text As String)
+        If LabRconState IsNot Nothing Then LabRconState.Text = Text
+        SyncRemoteDetail()
+    End Sub
+
+    '''<summary>跟本机同理：细节和徽标写同一句话（都「未连接」）就只留徽标那一处。</summary>
+    Private Sub SyncRemoteDetail()
+        If LabRconState Is Nothing Then Return
+        Dim D As String = If(LabRconState.Text, "").Trim()
+        LabRconState.Visibility = If(D = "" OrElse D = If(LabRemoteState.Text, "").Trim(), Visibility.Collapsed, Visibility.Visible)
+    End Sub
+
+    ' ── 状态自检 ──────────────────────────────────────
+    '状态文本靠事件改，事件一旦丢了（线程抛异常、进程被外部杀掉、RCON 先断），
+    '界面就会停在「关闭中」「启动中」上不动 —— 服明明关了，界面还写着在关。
+    '这里每 2 秒对一次真实现状：进程没了就点灭，RCON 通道断了就回「未连接」。
+
+    Private _StateWatch As System.Windows.Threading.DispatcherTimer
+    Private _LocalStateLevel As Integer = 0
+    Private _RemoteStateLevel As Integer = 0
+
+    Private Sub StartStateWatch()
+        Try
+            If _StateWatch Is Nothing Then
+                _StateWatch = New System.Windows.Threading.DispatcherTimer With {
+                    .Interval = TimeSpan.FromSeconds(2)
+                }
+                AddHandler _StateWatch.Tick, AddressOf StateWatchTick
+            End If
+            If Not _StateWatch.IsEnabled Then _StateWatch.Start()
+        Catch ex As Exception
+            Logger.Warn(ex, "启动运行状态自检失败")
+        End Try
+    End Sub
+
+    Private Sub StopStateWatch()
+        Try
+            If _StateWatch IsNot Nothing Then _StateWatch.Stop()
+        Catch
+        End Try
+    End Sub
+
+    Private Sub StateWatchTick(sender As Object, e As EventArgs)
+        Try
+            '① 本机：进程已经没了，界面却还挂着「启动中 / 运行中 / 关闭中」
+            If _LocalStateLevel <> StateIdle Then
+                Dim ProcGone As Boolean
+                If ServerProc IsNot Nothing Then
+                    ProcGone = ServerProc.HasExited
+                Else
+                    Dim Pid As Integer = Settings.Get(Of Integer)("LinkServerProcPid")
+                    ProcGone = (Pid <= 0) OrElse (FindServerProcess(Pid) Is Nothing)
+                End If
+                If ProcGone Then
+                    ClearServerProcRecord()
+                    CloseLocalRcon()
+                    HideTakeover()
+                    SetLocalState(StateIdle, "未运行")
+                    ServerConsoleAppend("[本机] 服务端已退出（自动检测）")
+                End If
+            End If
+            '② 远程：通道悄悄断了（对面重启 / 网络断了），别一直亮着「运行中」
+            If _RemoteStateLevel <> StateIdle AndAlso _RemoteStateLevel <> StateError Then
+                If Rcon Is Nothing OrElse Not Rcon.IsOpen Then
+                    SetRemoteState(StateIdle, "未连接")
+                End If
+            End If
+        Catch ex As Exception
+            Logger.Warn(ex, "运行状态自检失败")
+        End Try
+    End Sub
+
+    '''<summary>进页面时校准本机状态：本进程起的 / 上次留下的 / 都没有。</summary>
+    Private Sub LocalStateRefresh()
+        Try
+            If ServerRunning() Then
+                SetLocalState(StateRunning, "运行中", $"PID {ServerProc.Id}")
+                Return
+            End If
+            Dim Pid As Integer = Settings.Get(Of Integer)("LinkServerProcPid")
+            If Pid > 0 AndAlso FindServerProcess(Pid) IsNot Nothing Then Return 'ServerLeftoverRefresh 已经写过
+            SetLocalState(StateIdle, "未运行")
+        Catch ex As Exception
+            Logger.Warn(ex, "刷新本机运行状态失败")
+        End Try
+    End Sub
+
     ' ── 遗留服务端进程 ──────────────────────────────────
     '''<summary>记下这次启动的服务端 PID，启动器重启后才能认出它。</summary>
     Private Sub SaveServerProcRecord(P As System.Diagnostics.Process, Dir As String)
@@ -1520,19 +2235,15 @@ Public Class PageLinkMain
     '''<summary>
     ''' 开服前确保 server.properties 里有可用的 RCON 配置。
     ''' 这是「启动器重启后还能接管」的关键：stdin 管道断了，RCON 这条 TCP 通道还在。
-    ''' 密码随机生成一次并存进设置；文件里已有非空密码就沿用用户的。
+    ''' 密码随机生成一次就写进文件（文件才是权威源）；不动远程卡片的设置，也不回填它的输入框。
     ''' </summary>
     Private Sub EnsureRconConfigured(Dir As String)
         Try
             Dim Props As String = Dir.TrimEnd("\"c) & "\server.properties"
             If Not FileUtils.Exists(Props) Then Return
             Dim Lines As New List(Of String)(System.IO.File.ReadAllLines(Props))
-            Dim Port As Integer = 25575
-            '密码默认不持久化：只有勾了「记住密码」才从设置里取；文件里已有的值优先
+            Dim Port As Integer = DefaultRconPort
             Dim Pass As String = ""
-            If Settings.Get(Of Boolean)("LinkRconRememberPass") Then
-                Pass = If(Settings.Get(Of String)("LinkRconPass"), "").Trim()
-            End If
             Dim HasEnable As Boolean = False, HasPort As Boolean = False, HasPass As Boolean = False
             For Each L As String In Lines
                 If L.StartsWith("enable-rcon=") Then HasEnable = True
@@ -1547,10 +2258,10 @@ Public Class PageLinkMain
                     HasPass = True
                 End If
             Next
+            Dim Generated As Boolean = False
             If Pass = "" Then
                 Pass = Guid.NewGuid().ToString("N").Substring(0, 16)
-                '默认只写进 server.properties（那才是权威源），勾了记住才额外存一份
-                If Settings.Get(Of Boolean)("LinkRconRememberPass") Then Settings.Set("LinkRconPass", Pass)
+                Generated = True
             End If
             Dim Out As New List(Of String)
             For Each L As String In Lines
@@ -1568,39 +2279,92 @@ Public Class PageLinkMain
             If Not HasPort Then Out.Add("rcon.port=" & Port)
             If Not HasPass Then Out.Add("rcon.password=" & Pass)
             FileUtils.Write(Props, String.Join(vbCrLf, Out) & vbCrLf, encoding:=New System.Text.UTF8Encoding(False))
-            Settings.Set("LinkRconHost", "127.0.0.1")
-            Settings.Set("LinkRconPort", Port)
-            RconRefresh()
-            Logger.Info($"已确保 RCON 配置：127.0.0.1:{Port}")
+            If Generated Then
+                ServerConsoleAppend("[本机] 已在这个服务端的 server.properties 里生成 RCON 密码（重启启动器后也能靠它接管）。")
+            End If
+            Logger.Info($"已确保本机 RCON 配置：127.0.0.1:{Port}")
         Catch ex As Exception
             Logger.Warn(ex, "配置 RCON 失败")
         End Try
     End Sub
 
-    '''<summary>用当前输入框里的地址/端口/密码在后台连一次 RCON，成功后接管命令通道。</summary>
-    Private Sub AutoConnectRcon()
-        If Rcon IsNot Nothing AndAlso Rcon.IsOpen Then Return
-        Dim Host As String = If(TextRconHost.Text, "").Trim()
-        Dim Port As Integer
-        Dim Pass As String = GetRconPassword(Host)
-        If Host = "" OrElse Not Integer.TryParse(If(TextRconPort.Text, "").Trim(), Port) OrElse Pass = "" Then Return
+    '''<summary>
+    ''' 启动器重启后接管本机服务端：读服务端目录里的 server.properties（端口 / 密码），连 127.0.0.1。
+    ''' 全程不碰远程卡片 —— 地址框、密码框、远程控制台一个都不写，接管成功的消息打到本机控制台。
+    ''' </summary>
+    Private Sub ConnectLocalRcon()
+        If RconLocal IsNot Nothing AndAlso RconLocal.IsOpen Then Return
+        Dim Dir As String = ServerDir()
+        If Dir = "" Then Dir = If(Settings.Get(Of String)("LinkServerProcDir"), "").Trim()
+        If Dir = "" Then Return
+        Dim Port As Integer = DefaultRconPort
+        Dim Pass As String = ""
+        Dim Enabled As Boolean = False
+        Try
+            Dim Props As String = Dir.TrimEnd("\"c) & "\server.properties"
+            If Not FileUtils.Exists(Props) Then Return
+            For Each L As String In System.IO.File.ReadAllLines(Props)
+                If L.StartsWith("enable-rcon=") Then
+                    Enabled = L.Substring("enable-rcon=".Length).Trim().Equals("true", StringComparison.OrdinalIgnoreCase)
+                ElseIf L.StartsWith("rcon.port=") Then
+                    Integer.TryParse(L.Substring("rcon.port=".Length).Trim(), Port)
+                ElseIf L.StartsWith("rcon.password=") Then
+                    Pass = L.Substring("rcon.password=".Length).Trim()
+                End If
+            Next
+        Catch ex As Exception
+            Logger.Warn(ex, "读取本机 RCON 配置失败")
+            Return
+        End Try
+        If Not Enabled OrElse Pass = "" Then
+            ServerConsoleAppend("[本机] 这个服务端没开 RCON（enable-rcon 或 rcon.password 为空），接管不了命令通道；要关它只能用「关闭服务器」强制结束。")
+            Return
+        End If
+        Dim UsePort As Integer = Port
         RunInNewThread(Sub()
             Dim Client As New RconClient()
             Dim Err As String = ""
-            If Client.Connect(Host, Port, Pass, Err) Then
+            If Client.Connect("127.0.0.1", UsePort, Pass, Err) Then
                 RunInUi(Sub()
-                    Rcon = Client
-                    LabRconState.Text = $"已连接 {Host}:{Port}（自动接管命令）"
-                    ServerConsoleAppend($"[RCON] 已自动连上 {Host}:{Port}，命令框现在发的是 RCON 命令")
+                    RconLocal = Client
+                    SetLocalState(StateRunning, "后台运行", $"已接管 127.0.0.1:{UsePort}")
+                    ShowTakeover($"PID {Settings.Get(Of Integer)("LinkServerProcPid")} 已通过 RCON 接管（127.0.0.1:{UsePort}）。" & vbCrLf &
+                                 "实时输出拿不到，命令照发；要关它点上面的「关闭后台服务端」。")
+                    ServerConsoleAppend($"[本机] 已通过 RCON 接管（127.0.0.1:{UsePort}）。实时输出拿不到了，但命令和「关闭服务器」都能用。")
                 End Sub)
             Else
                 Client.Close()
-                Logger.Info($"RCON 自动连接失败：{Err}")
+                Logger.Info($"本机 RCON 接管失败：{Err}")
+                RunInUi(Sub()
+                            ServerConsoleAppend($"[本机] RCON 接管失败：{Err}。命令发不进去，要关它只能用「关闭服务器」强制结束。")
+                            ShowTakeover($"PID {Settings.Get(Of Integer)("LinkServerProcPid")} 还在后台跑，但 RCON 没接上：{Err}" & vbCrLf &
+                                         "命令发不进去，只能强制结束（会丢掉未保存的进度）。点「重新接管」再试一次。")
+                        End Sub)
             End If
-        End Sub, "Rcon Auto Connect")
+        End Sub, "Local Rcon Connect")
     End Sub
 
-    '''<summary>按 PID 取进程；不存在、已退出、或不是 java / cmd 就返回 Nothing。</summary>
+    '''<summary>走本机接管通道发一条命令，回显仍留在本地控制台。</summary>
+    Private Sub RconRunLocal(Cmd As String, Optional OnDone As Action = Nothing)
+        If RconLocal Is Nothing OrElse Not RconLocal.IsOpen Then Return
+        Dim Client As RconClient = RconLocal
+        ServerConsoleAppend("> " & Cmd & "  [RCON]")
+        RunInNewThread(Sub()
+            Dim Err As String = ""
+            Dim Res As String = Client.Command(Cmd, Err)
+            RunInUi(Sub()
+                If Err <> "" Then
+                    ServerConsoleAppend("! " & Err)
+                ElseIf If(Res, "").Trim() <> "" Then
+                    ServerConsoleAppend(Res.TrimEnd())
+                End If
+                If OnDone IsNot Nothing Then OnDone()
+            End Sub)
+        End Sub, "Local Rcon Run")
+    End Sub
+
+    '''<summary>
+    ''' 按 PID 取进程；不存在、已退出、或不是 java / cmd 就返回 Nothing。
     ''' 必须校验进程名 —— PID 会被系统复用，只按数字判断会误杀别的程序。
     ''' </summary>
     Private Function FindServerProcess(Pid As Integer) As System.Diagnostics.Process
@@ -1739,22 +2503,9 @@ Public Class PageLinkMain
         Return True
     End Function
 
-    '''<summary>后台发一条 RCON 命令，回显写进控制台。</summary>
+    '''<summary>后台发一条 RCON 命令，回显写进**远程**控制台（白名单 / OP 这类远端操作都走它）。</summary>
     Private Sub RconExec(Cmd As String, Optional OnDone As Action = Nothing)
-        If Rcon Is Nothing OrElse Not Rcon.IsOpen Then Return
-        ServerConsoleAppend("> " & Cmd & "  [RCON]")
-        RunInNewThread(Sub()
-            Dim Err As String = ""
-            Dim Res As String = Rcon.Command(Cmd, Err)
-            RunInUi(Sub()
-                If Err <> "" Then
-                    ServerConsoleAppend("! " & Err)
-                ElseIf If(Res, "").Trim() <> "" Then
-                    ServerConsoleAppend(Res.TrimEnd())
-                End If
-                If OnDone IsNot Nothing Then OnDone()
-            End Sub)
-        End Sub, "Rcon Exec")
+        RconRun(Cmd, OnDone)
     End Sub
 
     Private Sub BtnWhitelistAdd_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnWhitelistAdd.Click
@@ -2067,9 +2818,10 @@ Public Class PageLinkMain
         SaveServerProcRecord(ServerProc, D)
         AddHandler ServerProc.OutputDataReceived, AddressOf ServerOutput
         AddHandler ServerProc.ErrorDataReceived, AddressOf ServerOutput
+        WatchServerExit(ServerProc)
         ServerProc.BeginOutputReadLine()
         ServerProc.BeginErrorReadLine()
-        LabServerProc.Text = $"启动中…（run.bat，PID {ServerProc.Id}）"
+        SetLocalState(StateBusy, "启动中", $"PID {ServerProc.Id}（run.bat）")
         Hint("服务端已启动（run.bat）：首次启动要生成世界，可能需要 1–2 分钟。", HintType.Blue, False)
     End Sub
 
