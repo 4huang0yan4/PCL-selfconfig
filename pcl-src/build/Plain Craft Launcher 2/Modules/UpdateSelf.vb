@@ -1,13 +1,18 @@
-'自用分支：本分支（GitHub 仓库）的自动更新。
-' 默认关闭（设置项 SystemSelfUpdate），发布版用户在设置里打开；自用版保持关闭，避免被合规版覆盖。
-' Release 约定：tag 形如 2026.10.31-custom.7，资产里第一个 .exe 就是新版本。
+﻿'自用分支：本分支（GitHub 仓库）的自动更新。
+' Release 约定（2026-11-03 起）：
+'   tag  = PCL-selfconfig-custom.N（对外发布号）
+'   资产 = PCL-selfconfig-custom.N.zip，内含 Plain Craft Launcher 2.exe 与 .exe.config
+'   正文 = 必含一行「本地构建号：2026.11.03-custom.3」，用于和 VersionBaseName 比较
+' 设置项 SystemSelfUpdate 控制启动时静默检查；「检查更新」按钮始终可用。
 Imports Newtonsoft.Json.Linq
+Imports System.IO.Compression
+Imports System.Text.RegularExpressions
 
 Public Module UpdateSelf
 
-    Private Const Repo As String = "4huang0yan4/pcl-shiguangxiugaiban"
+    Private Const Repo As String = "4huang0yan4/PCL-selfconfig"
 
-    '''<summary>把 2026.10.31-custom.7 规范成 2026.10.31.7，便于 CompareVersion 比较。</summary>
+    '''<summary>把 2026.11.03-custom.3 规范成 2026.11.03.3，便于 CompareVersion 比较。</summary>
     Friend Function NormalizeVersion(S As String) As String
         If String.IsNullOrWhiteSpace(S) Then Return ""
         Return S.Trim().TrimStart("v"c, "V"c).Replace("-custom.", ".").Replace("-", ".")
@@ -32,9 +37,22 @@ Public Module UpdateSelf
     '''<summary>Release 信息（引用类型，便于返回 Nothing）。</summary>
     Friend Class UpdateInfo
         Friend Tag As String
+        Friend Build As String
         Friend Url As String
         Friend Body As String
     End Class
+
+    '''<summary>从 Release 正文里取「本地构建号：2026.11.03-custom.3」。</summary>
+    Friend Function ParseBuildFromBody(Body As String) As String
+        If String.IsNullOrWhiteSpace(Body) Then Return ""
+        For Each Line As String In Body.Split({vbCrLf, vbLf}, StringSplitOptions.RemoveEmptyEntries)
+            Dim T As String = Line.Trim()
+            If Not T.StartsWith("本地构建号") Then Continue For
+            Dim M As Match = Regex.Match(T, "\d{4}\.\d{2}\.\d{2}-custom\.\d+")
+            If M.Success Then Return M.Value
+        Next
+        Return ""
+    End Function
 
     '''<summary>有比当前更新的版本时返回 UpdateInfo，否则 Nothing。</summary>
     Friend Function GetNewerRelease() As UpdateInfo
@@ -42,22 +60,41 @@ Public Module UpdateSelf
         If Rel Is Nothing Then Return Nothing
         Dim Tag As String = If(Rel("tag_name")?.ToString, "").Trim()
         If Tag = "" Then Return Nothing
-        If CompareVersion(NormalizeVersion(Tag), NormalizeVersion(VersionBaseName)) <= 0 Then Return Nothing
-        Dim Assets As JArray = TryCast(Rel("assets"), JArray)
-        If Assets Is Nothing OrElse Assets.Count = 0 Then Return Nothing
+        Dim Body As String = If(Rel("body")?.ToString, "")
         Dim Url As String = Nothing
-        For Each A As JToken In Assets
-            Dim Name As String = A("name")?.ToString
-            If Name IsNot Nothing AndAlso Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) Then
-                Url = A("browser_download_url")?.ToString
-                Exit For
-            End If
-        Next
+        Dim Assets As JArray = TryCast(Rel("assets"), JArray)
+        If Assets IsNot Nothing Then
+            For Each A As JToken In Assets
+                Dim Name As String = A("name")?.ToString
+                If Name Is Nothing Then Continue For
+                If Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) OrElse Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) Then
+                    Url = A("browser_download_url")?.ToString
+                    Exit For
+                End If
+            Next
+        End If
         If String.IsNullOrWhiteSpace(Url) Then Return Nothing
-        Return New UpdateInfo With {.Tag = Tag, .Url = Url, .Body = If(Rel("body")?.ToString, "")}
+        Dim Build As String = ParseBuildFromBody(Body)
+        If Build = "" Then
+            ' 没有构建号就无法比较新旧，只认「已经提示过同一个 tag」
+            If Settings.Get(Of String)("SelfUpdateTag") = Tag Then Return Nothing
+            Return New UpdateInfo With {.Tag = Tag, .Build = "", .Url = Url, .Body = Body}
+        End If
+        If CompareVersion(NormalizeVersion(Build), NormalizeVersion(VersionBaseName)) <= 0 Then Return Nothing
+        Return New UpdateInfo With {.Tag = Tag, .Build = Build, .Url = Url, .Body = Body}
     End Function
 
-    '''<summary>「检查更新」按钮入口（开启自更新时由 UpdateCheckByButton 调用）。</summary>
+    Private Function Describe(Info As UpdateInfo) As String
+        Dim Text As String = $"发现新版本：{Info.Tag}"
+        If Info.Build <> "" Then Text &= $"（构建 {Info.Build}）"
+        Text &= vbCrLf & $"当前版本：{VersionBaseName}"
+        Dim B As String = If(Info.Body, "").Trim()
+        If B.Length > 500 Then B = B.Substring(0, 500) & "…"
+        If B <> "" Then Text &= vbCrLf & vbCrLf & B
+        Return Text
+    End Function
+
+    '''<summary>「检查更新」按钮入口。</summary>
     Friend Sub CheckByButton()
         RunInNewThread(Sub()
             Try
@@ -67,10 +104,8 @@ Public Module UpdateSelf
                     Return
                 End If
                 RunInUi(Sub()
-                    Dim Body As String = If(Newer.Body, "").Trim()
-                    If Body.Length > 600 Then Body = Body.Substring(0, 600) & "…"
-                    If MyMsgBox($"发现新版本：{Newer.Tag}{vbCrLf}当前版本：{VersionBaseName}{vbCrLf}{vbCrLf}{Body}{vbCrLf}{vbCrLf}是否下载并重启更新？", "发现新版本", "下载并更新", "取消") = 1 Then
-                        DownloadAndApply(Newer.Url, Newer.Tag)
+                    If MyMsgBox(Describe(Newer) & vbCrLf & vbCrLf & "是否下载并重启更新？", "发现新版本", "下载并更新", "取消") = 1 Then
+                        DownloadAndApply(Newer)
                     End If
                 End Sub)
             Catch ex As Exception
@@ -84,12 +119,11 @@ Public Module UpdateSelf
         Try
             Dim Newer = GetNewerRelease()
             If Newer Is Nothing Then Return
-            Dim Cache As String = PathTemp & "Cache\SelfUpdate.tag"
-            If FileUtils.Exists(Cache) AndAlso FileUtils.ReadAsString(Cache).Trim() = Newer.Tag Then Return
-            FileUtils.Write(Cache, Newer.Tag)
+            If Settings.Get(Of String)("SelfUpdateTag") = Newer.Tag Then Return
+            Settings.Set("SelfUpdateTag", Newer.Tag)
             RunInUi(Sub()
-                If MyMsgBox($"发现新版本：{Newer.Tag}{vbCrLf}当前版本：{VersionBaseName}{vbCrLf}{vbCrLf}是否现在下载并重启更新？", "本分支更新", "下载并更新", "以后再说") = 1 Then
-                    DownloadAndApply(Newer.Url, Newer.Tag)
+                If MyMsgBox(Describe(Newer) & vbCrLf & vbCrLf & "是否现在下载并重启更新？", "本分支更新", "下载并更新", "以后再说") = 1 Then
+                    DownloadAndApply(Newer)
                 End If
             End Sub)
         Catch ex As Exception
@@ -97,31 +131,51 @@ Public Module UpdateSelf
         End Try
     End Sub
 
-    Private Sub DownloadAndApply(Url As String, Tag As String)
+    Private Sub DownloadAndApply(Info As UpdateInfo)
         RunInNewThread(Sub()
             Try
                 Dim Dir As String = PathTemp & "Update\"
-                DirectoryUtils.Create(Dir)
+                Directory.CreateDirectory(Dir)
+                Dim Pack As String = Dir & "pack.tmp"
+                NetDownloadByLoader(Info.Url, Pack)
                 Dim NewExe As String = Dir & "PCL-new.exe"
-                NetDownloadByLoader(Url, NewExe)
-                RunInUi(Sub() ApplyUpdate(NewExe, Tag))
+                Dim NewCfg As String = Dir & "PCL-new.exe.config"
+                If Info.Url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) Then
+                    Using Zip As ZipArchive = ZipFile.OpenRead(Pack)
+                        For Each E As ZipArchiveEntry In Zip.Entries
+                            Select Case E.Name.ToLowerInvariant()
+                                Case "plain craft launcher 2.exe"
+                                    E.ExtractToFile(NewExe, True)
+                                Case "plain craft launcher 2.exe.config"
+                                    E.ExtractToFile(NewCfg, True)
+                            End Select
+                        Next
+                    End Using
+                Else
+                    File.Copy(Pack, NewExe, True)
+                End If
+                If Not FileUtils.Exists(NewExe) Then Throw New Exception("下载包里没有找到启动器主程序")
+                RunInUi(Sub() ApplyUpdate(NewExe, NewCfg, Info.Tag))
             Catch ex As Exception
                 RunInUi(Sub() Hint("下载更新失败：" & ex.Message, HintType.Red, False))
             End Try
         End Sub, "Self Update Download")
     End Sub
 
-    Private Sub ApplyUpdate(NewExe As String, Tag As String)
+    Private Sub ApplyUpdate(NewExe As String, NewCfg As String, Tag As String)
         Try
             Dim Bat As String = PathTemp & "Update\apply.cmd"
             Dim Old As String = PathExe
-            Dim Text As String =
-                "@echo off" & vbCrLf &
-                "timeout /t 2 >nul" & vbCrLf &
-                $"move /y ""{NewExe}"" ""{Old}""" & vbCrLf &
-                $"start """" ""{Old}""" & vbCrLf &
-                "del ""%~f0""" & vbCrLf
-            FileUtils.Write(Bat, Text, encoding:=Encoding.Default)
+            Dim OldCfg As String = Old & ".config"
+            Dim L As New List(Of String) From {
+                "@echo off",
+                "timeout /t 2 >nul",
+                $"copy /y ""{NewExe}"" ""{Old}"" >nul"
+            }
+            If FileUtils.Exists(NewCfg) Then L.Add($"copy /y ""{NewCfg}"" ""{OldCfg}"" >nul")
+            L.Add($"start """" ""{Old}""")
+            L.Add("del ""%~f0""")
+            FileUtils.Write(Bat, String.Join(vbCrLf, L), encoding:=Encoding.Default)
             Process.Start(New ProcessStartInfo("cmd.exe", $"/c ""{Bat}""") With {.CreateNoWindow = True, .UseShellExecute = False})
             Logger.Info($"已下载 {Tag}，等待替换并重启")
             FormMain.EndProgramForce(ProcessReturnValues.TaskDone)

@@ -10,6 +10,7 @@
 
 | tag | 日期 | 一句话内容 | 包含版本 |
 |---|---|---|---|
+| `PCL-selfconfig-custom.2` | 2026-11-03 | 自动更新可用：查本仓库 Release、比对构建号、下载 zip 替换 exe 重启；发布版默认开启 | 2026.11.03-custom.4 |
 | `PCL-selfconfig-custom.1` | 2026-11-03 | 首个公开版：改名 PCL 自配版、固定龙猫蓝、删主题预设、README 重写、服务端/联机/导出等功能 | 2026.11.03-custom.1 ~ custom.3 |
 | `2026.11.02-custom.31` | 2026-11-02 | 服务端安装合成一条任务、镜像自建装 Forge/NeoForge、Java 自动下载、T-01~T-11 实机验收 | custom.1 ~ custom.31 |
 | `2026.11.01-custom.22` | 2026-11-01 | 服务端进程托管、RCON 自动接管、RCON 密码默认用完即清 | custom.17 ~ custom.22 |
@@ -17,6 +18,30 @@
 | `2` | 2026-10-31 | 服务端下载与联机页服务端管理（分组列表、加载器安装、白名单、已装服务端） | custom.11 ~ custom.40 |
 | `1` | 2026-10-31 | 新增本分支自动更新模块（默认关闭） | custom.1 ~ custom.10 |
 
+## 2026.11.03-custom.4（自动更新可用）
+
+`PCL-selfconfig-custom.1` 的自动更新模块是照旧仓库写的（`pcl-shiguangxiugaiban`、只认 `.exe` 资产、版本号算 `2026.10.31.7` 这种四段式），换成 `PCL-selfconfig` 的 zip 发布后完全不通。本版重写。
+
+**换仓库与 Version 判断**
+
+- 仓库改为 `4huang0yan4/PCL-selfconfig`，仍走 `gh-proxy` / `ghfast` 代理兜底。
+- 版本比较不再猜 tag：读 Release 正文里的「本地构建号：`2026.11.03-custom.N`」，与 exe 自身的构建号比较；正文没有该行时退回只按 `Settings("SelfUpdateTag")` 判重，避免发布号（`custom.1`）与构建号（`2026.11.03-custom.4`）两套编号互相误判。
+
+**资产与环境**
+
+- 资产接受 `.zip` 与 `.exe`：zip 用 `ZipFile.OpenRead` 只抽 `Plain Craft Launcher 2.exe` 与 `Plain Craft Launcher 2.exe.config`，忽略说明文档，避免解压出无关文件。
+- 更新脚本 `apply.cmd` 改为「拷 exe（有 config 才拷）→ start → del」，与 Release 附 zip 的形态一致。
+- 弹窗写明发布号、构建号与正文摘要；同一 Release 只提示一次（`Settings("SelfUpdateTag")`）。
+
+**开关**
+
+- 发布版「设置 → 更新 → 检查本分支（GitHub）更新并提示下载」**默认开启**（`Settings.vb:220`）。
+- 自用版保持关闭：自用版的配色解锁与发布版不同，被自动更新覆盖会丢失主题配色。
+
+**产物**
+
+- `2026.11.03-custom.4`，exe sha256 `07f916849f26b208c6e04e97516d0c25469dc16d450253ab37dd06dae1458be4`。
+- `PCL-selfconfig-custom.2.zip`，2,737,070 B，sha256 `2e3163d08caa1d9b5c3cc133fa77f2fe22ebc04daec0c4943e79d0049a60d702`。
 ## 2026.11.03-custom.1 ~ custom.3（改名、合规收口与发布准备）
 
 **改名**
