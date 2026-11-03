@@ -45,13 +45,19 @@ Public Module UpdateSelf
     '''<summary>从 Release 正文里取「本地构建号：2026.11.03-custom.3」。</summary>
     Friend Function ParseBuildFromBody(Body As String) As String
         If String.IsNullOrWhiteSpace(Body) Then Return ""
+        ' 1) 优先找「本地构建号：…」行（允许行首有列表符号或空格）
         For Each Line As String In Body.Split({vbCrLf, vbLf}, StringSplitOptions.RemoveEmptyEntries)
-            Dim T As String = Line.Trim()
+            Dim T As String = Line.Trim().TrimStart(New Char() {"-"c, "*"c, "•"c, " "c})
             If Not T.StartsWith("本地构建号") Then Continue For
             Dim M As Match = Regex.Match(T, "\d{4}\.\d{2}\.\d{2}-custom\.\d+")
             If M.Success Then Return M.Value
         Next
-        Return ""
+        ' 2) 兜底：正文里任意位置出现过构建号时取最大的一个（防止发布者漏写那一行）
+        Dim Best As String = ""
+        For Each M As Match In Regex.Matches(Body, "\d{4}\.\d{2}\.\d{2}-custom\.\d+")
+            If Best = "" OrElse CompareVersion(NormalizeVersion(M.Value), NormalizeVersion(Best)) > 0 Then Best = M.Value
+        Next
+        Return Best
     End Function
 
     '''<summary>有比当前更新的版本时返回 UpdateInfo，否则 Nothing。</summary>
