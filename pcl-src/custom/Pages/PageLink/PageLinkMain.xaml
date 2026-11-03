@@ -108,7 +108,7 @@
                     </Grid.RowDefinitions>
 
                 <!-- ① 加入服务器：以客户端身份连到别人的服 -->
-                <local:MyCard x:Name="CardServerJoin" Grid.Row="0" Margin="20,0,20,16" HorizontalAlignment="Center" MaxWidth="700" CornerRadius="13">
+                <local:MyCard x:Name="CardServerJoin" Grid.Row="0" Margin="20,0,20,16" HorizontalAlignment="Stretch" MaxWidth="700" CornerRadius="13">
                     <StackPanel Margin="25,22,25,18">
                         <TextBlock Text="加入服务器" FontSize="20" Foreground="{DynamicResource ColorBrush3}" />
                         <TextBlock Opacity="0.65" FontSize="13" LineHeight="18" TextWrapping="Wrap" Margin="0,8,0,14"
@@ -154,7 +154,7 @@
                 </local:MyCard>
 
                 <!-- ② 本地服务器：在这台机器上开服，配置、名单、控制台都归它 -->
-                <local:MyCard x:Name="CardServerLocal" Grid.Row="1" Margin="20,0,20,16" HorizontalAlignment="Center" MaxWidth="700" CornerRadius="13">
+                <local:MyCard x:Name="CardServerLocal" Grid.Row="1" Margin="20,0,20,16" HorizontalAlignment="Stretch" MaxWidth="700" CornerRadius="13">
                     <StackPanel Margin="25,22,25,18">
                         <!-- 标题右边挂运行状态徽标：本机服务端在不在跑，一眼就看到，不用去翻下面的灰字 -->
                         <Grid>
@@ -365,7 +365,7 @@
                 </local:MyCard>
 
                 <!-- ③ 远程服务器：用 RCON 管云服务器 / 别人机器上的服务端。整卡常驻展开 -->
-                <local:MyCard x:Name="CardServerRemote" Grid.Row="2" Margin="20,0,20,16" HorizontalAlignment="Center" MaxWidth="700" CornerRadius="13">
+                <local:MyCard x:Name="CardServerRemote" Grid.Row="2" Margin="20,0,20,16" HorizontalAlignment="Stretch" MaxWidth="700" CornerRadius="13">
                     <StackPanel Margin="25,22,25,18">
                         <Grid>
                             <Grid.ColumnDefinitions>
