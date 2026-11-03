@@ -1,4 +1,4 @@
-﻿'自用分支：本分支（GitHub 仓库）的自动更新。
+'自用分支：本分支（GitHub 仓库）的自动更新。
 ' Release 约定（2026-11-03 起）：
 '   tag  = PCL-selfconfig-custom.N（对外发布号）
 '   资产 = PCL-selfconfig-custom.N.zip，内含 Plain Craft Launcher 2.exe 与 .exe.config
@@ -143,9 +143,32 @@ Public Module UpdateSelf
                 Dim Dir As String = PathTemp & "Update\"
                 Directory.CreateDirectory(Dir)
                 Dim Pack As String = Dir & "pack.tmp"
-                NetDownloadByLoader(Info.Url, Pack)
+                If FileUtils.Exists(Pack) Then FileUtils.Delete(Pack)
+                '走 PCL 原生下载引擎：任务栏有进度条和速度，任务管理器里能看到具体进度
+                Dim Combo As LoaderCombo(Of String) = Nothing
+                RunInUiWait(Sub()
+                    Dim Dl As New LoaderDownload($"本分支更新 {Info.Tag}", New List(Of NetFile) From {New NetFile({Info.Url}, Pack)})
+                    Combo = New LoaderCombo(Of String)($"更新 {Info.Tag}", {Dl}) With {.OnStateChanged = AddressOf LoaderStateChangedHintOnly}
+                    Combo.Start()
+                    LoaderTaskbarAdd(Combo)
+                    FrmMain.BtnExtraDownload.ShowRefresh()
+                    FrmMain.PageChange(FormMain.PageType.TaskManager)
+                End Sub)
+                Do While Combo.State.ToString() = "Loading"
+                    System.Threading.Thread.Sleep(120)
+                Loop
+                Dim StateText As String = Combo.State.ToString()
+                If StateText = "Cancelled" OrElse StateText = "Canceled" Then
+                    RunInUi(Sub() Hint("已取消下载更新", HintType.Blue, False))
+                    Return
+                End If
+                If StateText <> "Finished" Then Throw New Exception($"下载未完成（{StateText}）")
+                If Not FileUtils.Exists(Pack) Then Throw New Exception("下载文件不存在")
+                '从包里取出 exe 与 config
                 Dim NewExe As String = Dir & "PCL-new.exe"
                 Dim NewCfg As String = Dir & "PCL-new.exe.config"
+                If FileUtils.Exists(NewExe) Then FileUtils.Delete(NewExe)
+                If FileUtils.Exists(NewCfg) Then FileUtils.Delete(NewCfg)
                 If Info.Url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) Then
                     Using Zip As ZipArchive = ZipFile.OpenRead(Pack)
                         For Each E As ZipArchiveEntry In Zip.Entries
@@ -161,7 +184,13 @@ Public Module UpdateSelf
                     File.Copy(Pack, NewExe, True)
                 End If
                 If Not FileUtils.Exists(NewExe) Then Throw New Exception("下载包里没有找到启动器主程序")
-                RunInUi(Sub() ApplyUpdate(NewExe, NewCfg, Info.Tag))
+                If New FileInfo(NewExe).Length < 1024L * 1024L Then Throw New Exception("下载的主程序明显不完整（不到 1 MB）")
+                RunInUi(Sub()
+                    MyMsgBox($"新版本 {Info.Tag} 已下载完成。" & vbCrLf & vbCrLf &
+                             "点确定后启动器会关闭，约 3 秒后以新版本自动打开。" & vbCrLf &
+                             "如果没有自动打开，手动双击启动器即可，文件已经换好了。", "更新就绪", "立即重启")
+                    ApplyUpdate(NewExe, NewCfg, Info.Tag)
+                End Sub)
             Catch ex As Exception
                 RunInUi(Sub() Hint("下载更新失败：" & ex.Message, HintType.Red, False))
             End Try
@@ -170,20 +199,41 @@ Public Module UpdateSelf
 
     Private Sub ApplyUpdate(NewExe As String, NewCfg As String, Tag As String)
         Try
-            Dim Bat As String = PathTemp & "Update\apply.cmd"
+            Dim Dir As String = PathTemp & "Update\"
+            Dim Bat As String = Dir & "apply.cmd"
+            Dim LogPath As String = Dir & "apply.log"
             Dim Old As String = PathExe
-            Dim OldCfg As String = Old & ".config"
-            Dim L As New List(Of String) From {
+            Dim OldDir As String = IO.Path.GetDirectoryName(Old)
+            Dim Lines As New List(Of String) From {
                 "@echo off",
-                "timeout /t 2 >nul",
-                $"copy /y ""{NewExe}"" ""{Old}"" >nul"
+                "setlocal",
+                $"echo [%DATE% %TIME%] start >> ""{LogPath}""",
+                "rem 不能用 timeout：无控制台时它读不到按键会直接退出，等于没延时",
+                "ping -n 4 127.0.0.1 >nul",
+                "set TRY=0",
+                ":retry",
+                $"copy /y ""{NewExe}"" ""{Old}"" >> ""{LogPath}"" 2>&1",
+                "if not errorlevel 1 goto copied",
+                "set /a TRY+=1",
+                "if %TRY% GEQ 60 goto copyfail",
+                "ping -n 2 127.0.0.1 >nul",
+                "goto retry",
+                ":copied",
+                $"echo copy-ok >> ""{LogPath}"""
             }
-            If FileUtils.Exists(NewCfg) Then L.Add($"copy /y ""{NewCfg}"" ""{OldCfg}"" >nul")
-            L.Add($"start """" ""{Old}""")
-            L.Add("del ""%~f0""")
-            FileUtils.Write(Bat, String.Join(vbCrLf, L), encoding:=Encoding.Default)
+            If FileUtils.Exists(NewCfg) Then
+                Lines.Add($"copy /y ""{NewCfg}"" ""{Old}.config"" >> ""{LogPath}"" 2>&1")
+            End If
+            Lines.Add($"start """" /d ""{OldDir}"" ""{Old}""")
+            Lines.Add($"del ""{Bat}""")
+            Lines.Add("exit /b")
+            Lines.Add(":copyfail")
+            Lines.Add($"echo copy-fail, 目标被占用或没有写权限 >> ""{LogPath}""")
+            Lines.Add($"start """" /d ""{OldDir}"" ""{Old}""")
+            Lines.Add($"del ""{Bat}""")
+            FileUtils.Write(Bat, String.Join(vbCrLf, Lines), encoding:=Encoding.Default)
+            Logger.Info($"已下载 {Tag}，等待替换并重启（脚本 {Bat}）")
             Process.Start(New ProcessStartInfo("cmd.exe", $"/c ""{Bat}""") With {.CreateNoWindow = True, .UseShellExecute = False})
-            Logger.Info($"已下载 {Tag}，等待替换并重启")
             FormMain.EndProgramForce(ProcessReturnValues.TaskDone)
         Catch ex As Exception
             Logger.Error(ex, "应用更新失败")
